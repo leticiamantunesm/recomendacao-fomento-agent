@@ -1,0 +1,40 @@
+# Ambiente e segredos
+.env
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# IDE / SO
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Dados locais (manter pastas via .gitkeep)
+data/raw_pdfs/*
+!data/raw_pdfs/.gitkeep
+data/texts/*
+!data/texts/.gitkeep
+data/outputs/*
+!data/outputs/.gitkeep
+
+# Modelos / caches de ML
+*.bin
+*.onnx
+.cache/
+models/
+
+# Logs e temporários
+*.log
+tmp/
+temp/
