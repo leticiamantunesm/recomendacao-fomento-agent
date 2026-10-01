@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SADS — Criar conta</title>
+  <link rel="stylesheet" href="/static/styles.css?v=auth2" />
+  <link rel="icon" href="/static/assets/sads-logo.png?v=auth2" />
+</head>
+<body>
+  <header class="nav" id="nav"></header>
+  <main class="wrap" style="max-width:640px">
+    <section class="hero">
+      <div class="eyebrow">Onboarding</div>
+      <h1 style="margin:0">Criar conta da organizacao</h1>
+      <p>
+        Cadastre a empresa e o primeiro usuario administrador. Depois disso, o acesso e feito pela
+        tela de login — sem recadastrar a empresa.
+      </p>
+    </section>
+    <div id="alert" hidden></div>
+    <section class="panel">
+      <form id="form">
+        <h2 style="margin-top:0;font-family:var(--font-display);font-size:1.1rem">Empresa</h2>
+        <div class="row-2">
+          <div>
+            <label>CNPJ (opcional)</label>
+            <input name="cnpj" id="cnpj" placeholder="00.000.000/0000-00" />
+          </div>
+          <div style="display:flex;align-items:flex-end">
+            <button class="btn ghost" type="button" id="btn-cnpj" style="margin-top:0">Buscar CNPJ</button>
+          </div>
+        </div>
+        <label>Razao social / nome da empresa *</label>
+        <input name="company_name" id="company_name" required autocomplete="organization" />
+        <div class="row-2">
+          <div>
+            <label>Nome fantasia</label>
+            <input name="trade_name" id="trade_name" />
+          </div>
+          <div>
+            <label>Porte</label>
+            <select name="size" id="size">
+              <option value="">—</option>
+              <option>MEI</option>
+              <option>ME</option>
+              <option>EPP</option>
+              <option>Demais</option>
+            </select>
+          </div>
+        </div>
+        <div class="row-2">
+          <div>
+            <label>UF</label>
+            <input name="uf" id="uf" maxlength="2" />
+          </div>
+          <div>
+            <label>Cidade</label>
+            <input name="city" id="city" />
+          </div>
+        </div>
+
+        <h2 style="margin-top:1.5rem;font-family:var(--font-display);font-size:1.1rem">Administrador</h2>
+        <label>Seu nome *</label>
+        <input name="admin_name" required autocomplete="name" />
+        <label>E-mail corporativo *</label>
+        <input name="admin_email" type="email" required autocomplete="username" />
+        <label>Senha * (min. 8 caracteres)</label>
+        <input name="password" type="password" required autocomplete="new-password" minlength="8" />
+        <label>Confirmar senha *</label>
+        <input name="password2" type="password" required autocomplete="new-password" minlength="8" />
+        <button class="btn" type="submit">Criar conta e entrar</button>
+      </form>
+      <p class="muted" style="margin-top:1rem">
+        Ja possui conta? <a href="/login.html">Fazer login</a>
+      </p>
+    </section>
+  </main>
+  <script src="/static/app.js?v=auth2"></script>
+  <script>
+    renderNav("register.html");
+
+    const btnCnpj = document.getElementById("btn-cnpj");
+    const alertBox = "alert";
+
+    btnCnpj.addEventListener("click", async () => {
+      hideAlert(alertBox);
+      const raw = document.getElementById("cnpj").value;
+      const digits = String(raw || "").replace(/\D/g, "");
+      if (digits.length !== 14) {
+        showAlert(alertBox, "Informe um CNPJ valido com 14 digitos antes de buscar.");
+        return;
+      }
+      const prev = btnCnpj.textContent;
+      btnCnpj.disabled = true;
+      btnCnpj.textContent = "Buscando...";
+      try {
+        const data = await api(`/api/v1/cnpj/${digits}`, { method: "GET" });
+        if (data.name) document.getElementById("company_name").value = data.name;
+        if (data.trade_name) document.getElementById("trade_name").value = data.trade_name || "";
+        if (data.size) {
+          const sel = document.getElementById("size");
+          const opt = Array.from(sel.options).find((o) => o.value === data.size || o.text === data.size);
+          if (opt) sel.value = opt.value;
+        }
+        if (data.uf) document.getElementById("uf").value = data.uf;
+        if (data.city) document.getElementById("city").value = data.city;
+        // mascara simples do CNPJ no campo
+        document.getElementById("cnpj").value = digits.replace(
+          /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,
+          "$1.$2.$3/$4-$5"
+        );
+        showAlert(alertBox, `Dados preenchidos via ${data.source || "consulta publica"}.`, "ok");
+      } catch (err) {
+        showAlert(alertBox, err.message || "Falha ao buscar CNPJ.");
+      } finally {
+        btnCnpj.disabled = false;
+        btnCnpj.textContent = prev;
+      }
+    });
+
+    if (typeof isLoggedIn === "function" && isLoggedIn()) {
+      location.replace("/dashboard.html");
+    }
+
+    document.getElementById("form").onsubmit = async (ev) => {
+      ev.preventDefault();
+      hideAlert(alertBox);
+      const fd = new FormData(ev.target);
+      if (fd.get("password") !== fd.get("password2")) {
+        showAlert(alertBox, "As senhas nao coincidem.");
+        return;
+      }
+      const btn = ev.target.querySelector("button[type=submit]");
+      btn.disabled = true;
+      try {
+        const auth = await api("/api/v1/auth/register", {
+          method: "POST",
+          body: JSON.stringify({
+            company_name: fd.get("company_name"),
+            trade_name: fd.get("trade_name") || null,
+            cnpj: String(fd.get("cnpj") || "").replace(/\D/g, "") || null,
+            size: fd.get("size") || null,
+            uf: fd.get("uf") || null,
+            city: fd.get("city") || null,
+            admin_name: fd.get("admin_name"),
+            admin_email: fd.get("admin_email"),
+            password: fd.get("password"),
+          }),
+        });
+        setAuthSession(auth);
+        location.href = "/dashboard.html";
+      } catch (err) {
+        showAlert(alertBox, err.message);
+        btn.disabled = false;
+      }
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SADS — Relatório de recomendação</title>
+  <link rel="stylesheet" href="/static/report.css?v=auth4" />
+  <link rel="icon" href="/static/assets/sads-logo.png?v=auth4" />
+</head>
+<body class="report-body">
+  <div class="brand-ribbon" aria-hidden="true"></div>
+  <div class="report-app">
+    <header class="report-topbar">
+      <a class="brand" href="/" aria-label="SADS — início">
+        <img src="/static/assets/sads-logo.png?v=auth1" alt="SADS" />
+      </a>
+      <div class="top-actions">
+        <a class="ghost hide-mobile" href="/project-new.html" id="link-edit">Editar projeto</a>
+        <a class="ghost hide-mobile" href="/applications.html">Aplicações</a>
+        <button class="ghost" type="button" id="btn-reeval">Reavaliar</button>
+        <button class="ghost" type="button" onclick="window.print()">Imprimir / PDF</button>
+        <button class="primary" type="button" id="btn-export">Exportar relatório</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="project-switcher">
+          <div class="eyebrow">Projeto analisado</div>
+          <strong id="side-title">Carregando…</strong>
+          <small class="muted" id="side-meta">Análise automática</small>
+        </div>
+        <nav class="side-nav">
+          <a href="#resumo" class="active">Resumo <span>01</span></a>
+          <a href="#diagnostico">Diagnóstico <span>02</span></a>
+          <a href="#ranking">Ranking <span>03</span></a>
+          <a href="#criterios">Critérios <span>04</span></a>
+          <a href="#lacunas">Lacunas <span>05</span></a>
+          <a href="#plano">Plano de ação <span>06</span></a>
+        </nav>
+      </aside>
+
+      <main class="report-main">
+        <div id="banner" class="banner-alert info">Carregando projeto e gerando recomendações…</div>
+
+        <div class="page-head">
+          <div>
+            <div class="eyebrow">Relatório de recomendação de fomento</div>
+            <h1 id="page-title">Projeto</h1>
+            <div class="muted" id="page-subtitle">Aguardando avaliação</div>
+          </div>
+          <div class="status" id="page-status">Preparando análise</div>
+        </div>
+
+        <section id="resumo" class="hero">
+          <article class="card recommendation" id="hero-rec">
+            <div class="rank">#1 MELHOR RECOMENDAÇÃO</div>
+            <h2 class="program-title">Aguardando ranking…</h2>
+            <p class="muted">O scoring está cruzando o projeto com o corpus FINEP.</p>
+          </article>
+          <article class="card score-card" id="hero-score">
+            <div class="eyebrow">Compatibilidade geral</div>
+            <div class="score-ring" style="background: conic-gradient(var(--primary) 0 0%, rgba(255,255,255,0.08) 0% 100%)">
+              <div class="score-number">—</div>
+            </div>
+            <div class="range mid">—</div>
+            <small class="muted">Matriz v2 (6 critérios)</small>
+          </article>
+        </section>
+
+        <section class="section kpis" id="kpi-row"></section>
+
+        <section id="diagnostico" class="section">
+          <div class="section-head">
+            <h2>Diagnóstico do projeto</h2>
+            <span class="section-note">Como a aplicação interpretou a proposta</span>
+          </div>
+          <div class="two-col" id="diagnostico-body"></div>
+        </section>
+
+        <section id="ranking" class="section">
+          <div class="section-head">
+            <h2>Ranking de programas</h2>
+            <span class="section-note">Clique em uma opção para ver critérios e resumo</span>
+          </div>
+          <article class="card ranking" id="ranking-body">
+            <p class="muted">Aguardando recomendações…</p>
+          </article>
+          <div class="card detail-panel" id="rank-detail"></div>
+        </section>
+
+        <section id="criterios" class="section">
+          <div class="section-head">
+            <h2>Aderência da melhor recomendação</h2>
+            <span class="section-note">Score explicável por critério (matriz v2)</span>
+          </div>
+          <div class="two-col" id="criterios-body"></div>
+        </section>
+
+        <section id="lacunas" class="section">
+          <div class="section-head">
+            <h2>Lacunas antes da submissão</h2>
+            <span class="section-note">Priorizadas a partir das fraquezas do scoring</span>
+          </div>
+          <article class="card gap-list" id="lacunas-body"></article>
+        </section>
+
+        <section id="plano" class="section">
+          <div class="section-head">
+            <h2>Plano de ação recomendado</h2>
+            <span class="section-note">Sequência sugerida para aumentar a competitividade</span>
+          </div>
+          <div class="two-col" id="plano-body"></div>
+        </section>
+
+        <div class="footer-note">
+          Relatório gerado pelo SADS a partir do corpus FINEP indexado. Scores são heurísticos
+          (matriz v2) e não substituem banca oficial nem leitura integral do edital.
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="/static/app.js?v=auth4"></script>
+  <script>
+    ensureBrandAssets();
+    const s = requireEmployee();
+    if (!s) throw new Error("redirect");
+    const id = new URLSearchParams(location.search).get("id");
+    let lastPayload = null;
+
+    function esc(v) {
+      return String(v ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function setBanner(msg, kind = "info") {
+      const el = document.getElementById("banner");
+      el.className = `banner-alert ${kind}`;
+      el.textContent = msg;
+      el.hidden = !msg;
+    }
+
+    function levelOf(score) {
+      const n = Number(score);
+      if (!Number.isFinite(n)) return { key: "mid", label: "—", chance: "—", cls: "medium" };
+      if (n >= 75) return { key: "high", label: "Alta aderência", chance: "Chance alta", cls: "high" };
+      if (n >= 50) return { key: "mid", label: "Aderência média", chance: "Chance média", cls: "medium" };
+      return { key: "low", label: "Aderência baixa", chance: "Chance baixa", cls: "low" };
+    }
+
+    function pct(n) {
+      const v = Number(n);
+      if (!Number.isFinite(v)) return 0;
+      return Math.max(0, Math.min(100, Math.round(v)));
+    }
+
+    function moneyLabel(raw) {
+      if (raw == null || raw === "") return "—";
+      const s = String(raw).trim();
+      if (/r\$/i.test(s) || s.includes(".")) return s;
+      const n = Number(String(s).replace(/\./g, "").replace(",", "."));
+      if (!Number.isFinite(n)) return s;
+      return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+    }
+
+    function shortTitle(title) {
+      const t = String(title || "");
+      return t.length > 72 ? t.slice(0, 69) + "…" : t;
+    }
+
+    function edictUrl(app) {
+      if (!app) return "";
+      const fromApi = String(app.url || app.breakdown?.edict_url || app.breakdown?.url || "").trim();
+      if (fromApi) return fromApi;
+      const id = String(app.edict_external_id || "");
+      const m = id.match(/^finep-(\d+)$/i);
+      return m ? `https://www.finep.gov.br/e/chamada-publica/222684/${m[1]}` : "";
+    }
+
+    function edictTitleHtml(app, { short = false, heading = false } = {}) {
+      const raw = app?.edict_title || app?.edict_external_id || "Edital";
+      const label = short ? shortTitle(raw) : raw;
+      const href = edictUrl(app);
+      if (!href) {
+        return heading ? `<h2 class="program-title">${esc(label)}</h2>` : `<strong>${esc(label)}</strong>`;
+      }
+      const anchor = `<a class="edict-link" href="${esc(href)}" target="_blank" rel="noopener noreferrer" title="Abrir página da chamada na FINEP">${esc(label)}</a>`;
+      return heading ? `<h2 class="program-title">${anchor}</h2>` : `<strong>${anchor}</strong>`;
+    }
+
+    function bar(label, value, warnBelow = 60) {
+      const p = pct(value);
+      const cls = p < warnBelow ? "warning" : "";
+      return `<div class="bar-row"><div class="bar-label"><span>${esc(label)}</span><strong>${p}%</strong></div>
+        <div class="track"><div class="fill ${cls}" style="width:${p}%"></div></div></div>`;
+    }
+
+    function collectGaps(apps) {
+      const gaps = [];
+      const seen = new Set();
+      for (const a of apps || []) {
+        for (const w of a.weaknesses || []) {
+          const key = String(w).toLowerCase();
+          if (seen.has(key)) continue;
+          seen.add(key);
+          const critical = /prazo|ineleg|fora|abaixo|nao informado|não informado|vencid/i.test(w);
+          gaps.push({ text: w, critical, source: a.edict_title || a.edict_external_id });
+        }
+        if (gaps.length >= 6) break;
+      }
+      if (!gaps.length) {
+        gaps.push({
+          text: "Revisar anexos obrigatórios e elegibilidade do proponente no edital escolhido.",
+          critical: false,
+          source: "checklist geral",
+        });
+      }
+      return gaps;
+    }
+
+    function buildActions(gaps, top) {
+      const actions = [
+        {
+          title: "Confirmar elegibilidade do proponente",
+          detail: "Verificar se empresa, ICT ou cooperativa pode submeter na chamada #1.",
+          when: "0–7 dias",
+        },
+        {
+          title: "Checar prazo de proposta",
+          detail: "Validar data limite no site FINEP (situação Aberta ≠ prazo aberto).",
+          when: "Imediato",
+        },
+      ];
+      for (const g of gaps.slice(0, 3)) {
+        actions.push({
+          title: "Corrigir lacuna detectada",
+          detail: g.text,
+          when: g.critical ? "0–15 dias" : "15–30 dias",
+        });
+      }
+      actions.push({
+        title: "Preparar anexos e contrapartida",
+        detail: top
+          ? `Alinhar documentação ao edital ${top.edict_title || top.edict_external_id}.`
+          : "Alinhar documentação ao edital escolhido.",
+        when: "Antes do envio",
+      });
+      return actions;
+    }
+
+    function renderReport(project, company, data) {
+      const apps = data.applications || [];
+      const form = project.form_data || {};
+      const title = form.title || project.title || "Projeto";
+      const subtitle =
+        form.summary ||
+        project.raw_text_preview ||
+        "Proposta analisada automaticamente contra o corpus FINEP.";
+      const areas = Array.isArray(form.areas)
+        ? form.areas
+        : form.areas
+          ? [form.areas]
+          : company?.areas || [];
+      const top = apps[0];
+      const topLevel = levelOf(top?.score);
+      const gaps = collectGaps(apps);
+      const candidates = data.retrieval?.candidate_count ?? apps.length;
+
+      document.title = `${title} — relatório`;
+      document.getElementById("side-title").textContent = shortTitle(title);
+      document.getElementById("side-meta").textContent = `Status: ${project.status || "—"} · top ${apps.length}`;
+      document.getElementById("page-title").textContent = title;
+      document.getElementById("page-subtitle").textContent =
+        subtitle.length > 160 ? subtitle.slice(0, 157) + "…" : subtitle;
+      document.getElementById("page-status").textContent = apps.length
+        ? "Análise concluída"
+        : "Sem recomendações";
+      document.getElementById("page-status").className = apps.length ? "status" : "status warn";
+      document.getElementById("link-edit").href = `/project-new.html?id=${encodeURIComponent(id)}`;
+
+      // Hero
+      if (top) {
+        const strengths = (top.strengths || []).slice(0, 3);
+        while (strengths.length < 3) strengths.push("Revisar detalhes no breakdown");
+        const topHref = edictUrl(top);
+        document.getElementById("hero-rec").innerHTML = `
+          <div class="rank">#1 MELHOR RECOMENDAÇÃO</div>
+          ${edictTitleHtml(top, { heading: true })}
+          <p class="muted">${esc(top.summary || "Sem síntese.")}</p>
+          <div class="program-meta">
+            <span class="chip">${esc(top.edict_external_id || "FINEP")}</span>
+            <span class="chip">Score ${esc(top.score)}/100</span>
+            <span class="chip">${esc(topLevel.chance)}</span>
+            ${topHref ? `<a class="chip chip-link" href="${esc(topHref)}" target="_blank" rel="noopener noreferrer">Abrir na FINEP ↗</a>` : ""}
+            ${(areas || []).slice(0, 2).map((a) => `<span class="chip">${esc(a)}</span>`).join("")}
+          </div>
+          <div class="reasons">
+            ${strengths.map((r) => `<div class="reason">${esc(r)}</div>`).join("")}
+          </div>`;
+        const p = pct(top.score);
+        document.getElementById("hero-score").innerHTML = `
+          <div class="eyebrow">Compatibilidade geral</div>
+          <div class="score-ring" style="background: conic-gradient(var(--primary) 0 ${p}%, rgba(255,255,255,0.08) ${p}% 100%)">
+            <div class="score-number">${p}%</div>
+          </div>
+          <div class="range ${topLevel.key}">${esc(topLevel.label)}</div>
+          <small class="muted">Matriz v2 · similaridade, tema, TRL, porte, região, orçamento</small>`;
+      } else {
+        document.getElementById("hero-rec").innerHTML = `
+          <div class="rank">SEM RECOMENDAÇÃO</div>
+          <h2 class="program-title">Nenhum edital ranqueado</h2>
+          <p class="muted">Verifique se o corpus FINEP está indexado e se o texto do projeto tem conteúdo suficiente.</p>`;
+      }
+
+      // KPIs
+      document.getElementById("kpi-row").innerHTML = `
+        <article class="card kpi"><div class="label">Programas avaliados</div><div class="value">${esc(candidates)}</div><div class="sub">${apps.length} no top ranking</div></article>
+        <article class="card kpi"><div class="label">Orçamento do projeto</div><div class="value" style="font-size:1rem">${esc(moneyLabel(form.budget_brl))}</div><div class="sub">${form.duration_months ? esc(form.duration_months) + " meses" : "duração n/d"}</div></article>
+        <article class="card kpi"><div class="label">Chance estimada (#1)</div><div class="value">${esc(topLevel.chance.replace("Chance ", "") || "—")}</div><div class="sub">Cenário qualitativo</div></article>
+        <article class="card kpi"><div class="label">Lacunas críticas</div><div class="value">${gaps.filter((g) => g.critical).length}</div><div class="sub">${gaps.length} pontos a tratar</div></article>`;
+
+      // Diagnóstico
+      const companySize = company?.size || "—";
+      const trl = company?.trl ?? form.trl ?? "—";
+      const bd0 = top?.breakdown || {};
+      document.getElementById("diagnostico-body").innerHTML = `
+        <article class="card">
+          <div class="profile-grid">
+            <div class="profile-item"><div class="eyebrow">Área temática</div><strong>${esc((areas || []).slice(0, 3).join("; ") || "Não informada")}</strong><small class="muted">Do formulário / empresa</small></div>
+            <div class="profile-item"><div class="eyebrow">Proponente</div><strong>${esc(company?.name || s.companyName || "Empresa")}</strong><small class="muted">Porte: ${esc(companySize)} · UF: ${esc(company?.uf || "—")}</small></div>
+            <div class="profile-item"><div class="eyebrow">Maturidade (TRL)</div><strong>${esc(trl)}</strong><small class="muted">Informado no perfil/formulário</small></div>
+            <div class="profile-item"><div class="eyebrow">Arquivo</div><strong>${esc(project.file_path ? "PDF anexado" : "Sem arquivo")}</strong><small class="muted">${esc(project.status || "")}</small></div>
+          </div>
+          ${form.summary ? `<p style="margin-top:14px">${esc(form.summary)}</p>` : ""}
+        </article>
+        <article class="card">
+          <h3>Sinais derivados do scoring (#1)</h3>
+          ${bar("Aderência textual", bd0.similarity)}
+          ${bar("Fit temático", bd0.area)}
+          ${bar("TRL", bd0.trl)}
+          ${bar("Porte / elegibilidade estrutural", bd0.size)}
+          ${bar("Região", bd0.region)}
+          ${bar("Orçamento", bd0.budget)}
+        </article>`;
+
+      // Ranking
+      document.getElementById("ranking-body").innerHTML = apps.length
+        ? apps
+            .map((a) => {
+              const lv = levelOf(a.score);
+              const href = edictUrl(a);
+              return `<div class="program-row" role="button" tabindex="0" data-app="${esc(a.id)}">
+                <div class="medal">${esc(a.rank_position || "—")}</div>
+                <div>${edictTitleHtml(a, { short: true })}
+                  <div class="muted">${esc(a.edict_external_id || "")}${href ? ` · <a class="edict-link muted-link" href="${esc(href)}" target="_blank" rel="noopener noreferrer">FINEP ↗</a>` : ""}</div></div>
+                <div class="hide-tablet"><strong>${esc(moneyLabel(form.budget_brl))}</strong><div class="muted">orçamento projeto</div></div>
+                <div class="hide-tablet"><span class="chance ${lv.cls}">${esc(lv.chance)}</span></div>
+                <div class="fit">${pct(a.score)}%</div>
+                <div class="arrow">›</div>
+              </div>`;
+            })
+            .join("")
+        : `<p class="muted">Nenhum programa no ranking.</p>`;
+
+      document.querySelectorAll(".program-row").forEach((row) => {
+        const openDetail = () => {
+          const app = apps.find((x) => String(x.id) === String(row.dataset.app));
+          if (!app) return;
+          showDetail(app);
+          document.getElementById("criterios").scrollIntoView({ behavior: "smooth" });
+          renderCriteria(app, apps);
+        };
+        row.onclick = (ev) => {
+          if (ev.target.closest("a")) return;
+          openDetail();
+        };
+        row.onkeydown = (ev) => {
+          if (ev.key === "Enter" || ev.key === " ") {
+            ev.preventDefault();
+            openDetail();
+          }
+        };
+      });
+
+      renderCriteria(top, apps);
+
+      // Lacunas
+      document.getElementById("lacunas-body").innerHTML = gaps
+        .map(
+          (g) => `<div class="gap-item">
+            <div class="severity ${g.critical ? "high-sev" : ""}"></div>
+            <div><strong>${esc(g.text)}</strong>
+              <div class="muted">Origem: ${esc(g.source)}</div></div>
+            <span class="impact ${g.critical ? "critical" : ""}">${g.critical ? "Impacto alto" : "Impacto médio"}</span>
+          </div>`
+        )
+        .join("");
+
+      // Plano
+      const actions = buildActions(gaps, top);
+      document.getElementById("plano-body").innerHTML = `
+        <article class="card action-list">
+          ${actions
+            .map(
+              (a) => `<div class="action">
+              <button class="check" type="button" aria-label="Marcar ação"></button>
+              <div><strong>${esc(a.title)}</strong><div class="muted">${esc(a.detail)}</div></div>
+              <span class="deadline">${esc(a.when)}</span>
+            </div>`
+            )
+            .join("")}
+        </article>
+        <article class="card">
+          <h3>Próxima decisão</h3>
+          <p>${esc(
+            top
+              ? `Priorizar o edital #1 (${top.edict_title || top.edict_external_id}) se elegibilidade e prazo forem confirmados; caso contrário, avaliar #2/#3 do ranking.`
+              : "Não há ranking — refine o texto do projeto ou atualize o corpus FINEP."
+          )}</p>
+          <div style="background:var(--primary-soft); border-radius:12px; padding:15px; margin-top:18px; color:#21489f;">
+            <strong>Recomendação da aplicação</strong>
+            <p style="margin-bottom:0">${esc(
+              top?.summary ||
+                "Conclua a avaliação e valide anexos, prazo e tipo de proponente antes de submeter."
+            )}</p>
+          </div>
+          ${
+            top
+              ? `<button class="primary no-print" style="margin-top:16px;background:#173774;color:#fff;border:0" type="button" id="btn-submit-top">Marcar #1 como submetido</button>`
+              : ""
+          }
+        </article>`;
+
+      document.querySelectorAll(".check").forEach((button) => {
+        button.onclick = () => {
+          const done = button.dataset.done === "true";
+          button.dataset.done = String(!done);
+          button.textContent = done ? "" : "✓";
+          button.style.background = done ? "#fff" : "#e8f7f1";
+          button.style.color = "#16835f";
+          button.style.borderColor = done ? "#cbd5e1" : "#95d6bd";
+        };
+      });
+
+      const submitBtn = document.getElementById("btn-submit-top");
+      if (submitBtn && top) {
+        submitBtn.onclick = async () => {
+          try {
+            await api(`/api/v1/applications/${top.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status: "submitted" }),
+            });
+            setBanner("Chamada #1 marcada como submetida.", "ok");
+            submitBtn.textContent = "Submetido";
+            submitBtn.disabled = true;
+          } catch (err) {
+            setBanner(err.message, "err");
+          }
+        };
+      }
+    }
+
+    function showDetail(app) {
+      const panel = document.getElementById("rank-detail");
+      const lv = levelOf(app.score);
+      const href = edictUrl(app);
+      panel.classList.add("open");
+      panel.innerHTML = `
+        <div class="eyebrow">Detalhe da chamada</div>
+        <h3 style="margin-top:6px">${edictTitleHtml(app)}</h3>
+        <p class="muted">${esc(app.edict_external_id || "")} · ${esc(lv.chance)} · ${pct(app.score)}%</p>
+        ${href ? `<p><a class="edict-link" href="${esc(href)}" target="_blank" rel="noopener noreferrer">Abrir página oficial na FINEP ↗</a></p>` : ""}
+        <p>${esc(app.summary || "")}</p>
+        <p><strong>Forças:</strong> ${(app.strengths || []).map(esc).join(" · ") || "—"}</p>
+        <p><strong>Fraquezas:</strong> ${(app.weaknesses || []).map(esc).join(" · ") || "—"}</p>`;
+    }
+
+    function renderCriteria(app, allApps) {
+      const box = document.getElementById("criterios-body");
+      if (!app) {
+        box.innerHTML = `<article class="card"><p class="muted">Sem critérios — ranking vazio.</p></article>`;
+        return;
+      }
+      const bd = app.breakdown || {};
+      const w = bd.weights || {};
+      const second = (allApps || [])[1];
+      box.innerHTML = `
+        <article class="card">
+          ${bar(`Similaridade (${Math.round((w.similarity || 0.3) * 100)}%)`, bd.similarity)}
+          ${bar(`Tema / áreas (${Math.round((w.area || 0.25) * 100)}%)`, bd.area)}
+          ${bar(`TRL (${Math.round((w.trl || 0.15) * 100)}%)`, bd.trl)}
+          ${bar(`Porte (${Math.round((w.size || 0.15) * 100)}%)`, bd.size)}
+          ${bar(`Região (${Math.round((w.region || 0.1) * 100)}%)`, bd.region)}
+          ${bar(`Orçamento (${Math.round((w.budget || 0.05) * 100)}%)`, bd.budget)}
+        </article>
+        <article class="card">
+          <h3>Por que ficou em primeiro lugar?</h3>
+          <p>${esc(app.summary || "Maior score composto na matriz v2 entre os candidatos retornados.")}</p>
+          ${
+            second
+              ? `<h3 style="margin-top:20px">Por que ${esc(shortTitle(second.edict_title || second.edict_external_id))} não ficou em primeiro?</h3>
+                 <p class="muted">${esc(second.summary || `Score ${second.score}/100 — abaixo do #1.`)}</p>`
+              : ""
+          }
+          <p class="muted" style="margin-top:16px">Pesos: similaridade 30% · tema 25% · TRL 15% · porte 15% · região 10% · orçamento 5%.</p>
+        </article>`;
+    }
+
+    async function runEvaluate() {
+      setBanner("Cruzando projeto com editais FINEP indexados…", "info");
+      const data = await api(`/api/v1/projects/${id}/evaluate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agency: "FINEP", k: 8, top_n: 5 }),
+      });
+      lastPayload = data;
+      const project = data.project || (await api(`/api/v1/projects/${id}`));
+      const company =
+        data.company ||
+        (project.company_id ? await api(`/api/v1/companies/${project.company_id}`).catch(() => null) : null);
+      renderReport(project, company, data);
+      setBanner(
+        `Relatório gerado: ${(data.applications || []).length} recomendação(ões) · candidatos=${data.retrieval?.candidate_count ?? "—"}`,
+        "ok"
+      );
+      return data;
+    }
+
+    function exportReport() {
+      if (!lastPayload) {
+        setBanner("Aguarde a avaliação antes de exportar.", "warn");
+        return;
+      }
+      const blob = new Blob([JSON.stringify(lastPayload, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `relatorio-fomento-${id}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      setBanner("JSON do relatório exportado. Use Imprimir / PDF para versão visual.", "ok");
+    }
+
+    document.querySelectorAll(".side-nav a").forEach((link) => {
+      link.addEventListener("click", () => {
+        document.querySelectorAll(".side-nav a").forEach((item) => item.classList.remove("active"));
+        link.classList.add("active");
+      });
+    });
+
+    document.getElementById("btn-reeval").onclick = () =>
+      runEvaluate().catch((err) => setBanner(err.message, "err"));
+    document.getElementById("btn-export").onclick = exportReport;
+
+    (async () => {
+      if (!id) {
+        setBanner("Projeto não informado. Suba um PDF em Novo projeto.", "err");
+        return;
+      }
+      try {
+        const project = await api(`/api/v1/projects/${id}`);
+        document.getElementById("side-title").textContent = shortTitle(project.title);
+        document.getElementById("page-title").textContent = project.title;
+        document.getElementById("link-edit").href = `/project-new.html?id=${encodeURIComponent(id)}`;
+        await runEvaluate();
+      } catch (err) {
+        setBanner(`Falha na avaliação: ${err.message}`, "err");
+        try {
+          const project = await api(`/api/v1/projects/${id}`);
+          const company = project.company_id
+            ? await api(`/api/v1/companies/${project.company_id}`).catch(() => null)
+            : null;
+          const apps = await api(
+            `/api/v1/applications?company_id=${s.companyId}&project_id=${id}`
+          );
+          lastPayload = { applications: apps, project, company };
+          renderReport(project, company, lastPayload);
+          setBanner(`Usando recomendações salvas. Erro ao reavaliar: ${err.message}`, "info");
+        } catch (e2) {
+          setBanner(e2.message, "err");
+        }
+      }
+    })();
+  </script>
+</body>
+</html>

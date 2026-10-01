@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <script>try{var t=localStorage.getItem("rf_theme");document.documentElement.setAttribute("data-theme",t==="light"?"light":"dark")}catch(e){}</script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Novo projeto</title>
+  <link rel="stylesheet" href="/static/styles.css?v=clean2" />
+</head>
+<body>
+  <header class="nav" id="nav"></header>
+  <main class="wrap">
+    <section class="hero">
+      <div class="eyebrow">Projetos</div>
+      <h1>Subir novo projeto</h1>
+      <p>Envie o PDF. O sistema extrai o texto e preenche o formulário — você pode editar tudo antes de ver as recomendações.</p>
+    </section>
+    <div id="alert" hidden></div>
+
+    <section class="panel" id="upload-panel">
+      <form id="upload-form">
+        <label>PDF do projeto *</label>
+        <input type="file" name="file" accept="application/pdf,.pdf" required />
+        <label>Titulo (opcional — senao vem do PDF)</label>
+        <input name="title" />
+        <button class="btn" type="submit">Extrair e preencher formulario</button>
+      </form>
+    </section>
+
+    <section class="panel" id="form-panel" hidden>
+      <h2 style="margin-top:0;font-family:var(--font-display)">Formulario do projeto</h2>
+      <p class="muted" id="extract-meta"></p>
+      <form id="edit-form">
+        <label>Titulo</label>
+        <input name="title" required />
+        <label>Resumo</label>
+        <textarea name="summary"></textarea>
+        <label>Objetivos (um por linha)</label>
+        <textarea name="objectives"></textarea>
+        <label>Metodologia</label>
+        <textarea name="methodology"></textarea>
+        <label>Resultados esperados</label>
+        <textarea name="expected_results"></textarea>
+        <label>Equipe</label>
+        <textarea name="team"></textarea>
+        <div class="row-2">
+          <div>
+            <label>Orcamento (R$)</label>
+            <input name="budget_brl" />
+          </div>
+          <div>
+            <label>Duracao (meses)</label>
+            <input name="duration_months" type="number" min="1" />
+          </div>
+        </div>
+        <label>Areas (;)</label>
+        <input name="areas" />
+        <label>Contrapartida</label>
+        <textarea name="counterpart"></textarea>
+        <label>Notas</label>
+        <textarea name="notes"></textarea>
+        <button class="btn" type="submit">Salvar e abrir relatorio</button>
+      </form>
+    </section>
+  </main>
+  <script src="/static/app.js?v=clean2"></script>
+  <script>
+    renderNav("project-new.html");
+    const s = requireEmployee();
+    if (!s) throw new Error("redirect");
+    let projectId = new URLSearchParams(location.search).get("id");
+
+    function fillForm(p) {
+      const f = p.form_data || {};
+      const form = document.getElementById("edit-form");
+      form.title.value = f.title || p.title || "";
+      form.summary.value = f.summary || "";
+      form.objectives.value = Array.isArray(f.objectives) ? f.objectives.join("\n") : (f.objectives || "");
+      form.methodology.value = f.methodology || "";
+      form.expected_results.value = f.expected_results || "";
+      form.team.value = f.team || "";
+      form.budget_brl.value = f.budget_brl || "";
+      form.duration_months.value = f.duration_months || "";
+      form.areas.value = Array.isArray(f.areas) ? f.areas.join("; ") : (f.areas || "");
+      form.counterpart.value = f.counterpart || "";
+      form.notes.value = f.notes || "";
+      const chars = f.extracted_chars != null ? f.extracted_chars : (p.raw_text_preview || "").length;
+      const ok = f.extraction_ok !== false && chars >= 80;
+      document.getElementById("extract-meta").textContent = ok
+        ? `Texto extraido (~${chars} caracteres). Revise os campos e continue para as recomendacoes.`
+        : `Pouco texto extraido (~${chars} caracteres). PDF pode ser escaneado — preencha manualmente.`;
+      document.getElementById("form-panel").hidden = false;
+      if (projectId) {
+        document.getElementById("upload-panel").hidden = true;
+      }
+    }
+
+    if (projectId) {
+      api(`/api/v1/projects/${projectId}`)
+        .then((p) => {
+          fillForm(p);
+          showAlert("alert", "Projeto carregado. Ajuste o formulario e salve para ver recomendacoes.", "info");
+        })
+        .catch((err) => showAlert("alert", err.message));
+    }
+
+    document.getElementById("upload-form").onsubmit = async (ev) => {
+      ev.preventDefault();
+      hideAlert("alert");
+      const btn = ev.target.querySelector("button");
+      btn.disabled = true;
+      btn.textContent = "Processando PDF...";
+      try {
+        const fd = new FormData(ev.target);
+        fd.set("company_id", s.companyId);
+        if (s.employeeId) fd.set("employee_id", s.employeeId);
+        else fd.delete("employee_id");
+        const file = fd.get("file");
+        if (!file || !file.size) throw new Error("Selecione um arquivo PDF.");
+        const p = await api("/api/v1/projects", { method: "POST", body: fd });
+        projectId = p.id;
+        history.replaceState({}, "", `/project-new.html?id=${projectId}`);
+        fillForm(p);
+        const ok = (p.form_data || {}).extraction_ok !== false;
+        showAlert("alert", ok ? "PDF processado. Revise o formulario." : "PDF salvo, mas a extracao veio fraca — edite os campos.", ok ? "ok" : "info");
+      } catch (err) {
+        showAlert("alert", err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Extrair e preencher formulario";
+      }
+    };
+
+    document.getElementById("edit-form").onsubmit = async (ev) => {
+      ev.preventDefault();
+      if (!projectId) return;
+      hideAlert("alert");
+      const fd = new FormData(ev.target);
+      const form_data = {
+        title: fd.get("title"),
+        summary: fd.get("summary"),
+        objectives: String(fd.get("objectives") || "").split("\n").map((x) => x.trim()).filter(Boolean),
+        methodology: fd.get("methodology"),
+        expected_results: fd.get("expected_results"),
+        team: fd.get("team"),
+        budget_brl: fd.get("budget_brl") || null,
+        duration_months: fd.get("duration_months") ? Number(fd.get("duration_months")) : null,
+        areas: String(fd.get("areas") || "").split(/[;|,]/).map((x) => x.trim()).filter(Boolean),
+        counterpart: fd.get("counterpart"),
+        notes: fd.get("notes"),
+      };
+      const btn = ev.target.querySelector("button");
+      btn.disabled = true;
+      btn.textContent = "Salvando...";
+      try {
+        await api(`/api/v1/projects/${projectId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: form_data.title, form_data }),
+        });
+        location.href = `/project-evaluate.html?id=${projectId}`;
+      } catch (err) {
+        showAlert("alert", err.message);
+        btn.disabled = false;
+        btn.textContent = "Salvar e ver relatorio";
+      }
+    };
+  </script>
+</body>
+</html>

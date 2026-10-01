@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <script>try{var t=localStorage.getItem("rf_theme");document.documentElement.setAttribute("data-theme",t==="light"?"light":"dark")}catch(e){}</script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SADS — Equipe</title>
+  <link rel="stylesheet" href="/static/styles.css?v=clean2" />
+  <link rel="icon" href="/static/assets/sads-logo.png?v=clean2" />
+</head>
+<body>
+  <header class="nav" id="nav"></header>
+  <main class="wrap">
+    <section class="hero">
+      <div class="eyebrow">Organizacao</div>
+      <h1 style="margin:0">Equipe</h1>
+      <p>Convide colaboradores da mesma empresa. Cada um tera e-mail e senha proprios para o login.</p>
+    </section>
+    <div id="alert" hidden></div>
+    <section class="panel">
+      <form id="form">
+        <label>Nome *</label>
+        <input name="name" required />
+        <label>E-mail corporativo *</label>
+        <input name="email" type="email" required />
+        <label>Senha inicial * (min. 8)</label>
+        <input name="password" type="password" required minlength="8" autocomplete="new-password" />
+        <div class="row-2">
+          <div>
+            <label>Area / departamento</label>
+            <input name="area" placeholder="P&amp;D, Inovacao..." />
+          </div>
+          <div>
+            <label>Cargo</label>
+            <input name="role_title" placeholder="Analista, Diretor..." />
+          </div>
+        </div>
+        <label>Perfil de acesso</label>
+        <select name="role">
+          <option value="analyst">Analista</option>
+          <option value="admin">Administrador</option>
+          <option value="viewer">Somente leitura</option>
+        </select>
+        <button class="btn" type="submit">Adicionar a equipe</button>
+      </form>
+    </section>
+    <section class="panel">
+      <h2 style="margin-top:0;font-family:var(--font-display)">Membros</h2>
+      <div id="list" class="muted">Carregando...</div>
+    </section>
+  </main>
+  <script src="/static/app.js?v=clean2"></script>
+  <script>
+    renderNav("employee.html");
+    const s = requireAuth();
+    if (!s) throw new Error("redirect");
+
+    async function loadList() {
+      const rows = await api(`/api/v1/employees?company_id=${s.companyId}`);
+      if (!rows.length) {
+        document.getElementById("list").textContent = "Nenhum membro ainda.";
+        return;
+      }
+      document.getElementById("list").innerHTML = `
+        <table class="table"><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Senha</th></tr></thead>
+        <tbody>${rows.map((e) => `
+          <tr>
+            <td>${e.name}</td>
+            <td>${e.email}</td>
+            <td>${e.role || "—"}</td>
+            <td>${e.has_password ? "Definida" : "Pendente"}</td>
+          </tr>`).join("")}</tbody></table>`;
+    }
+    loadList().catch((e) => showAlert("alert", e.message));
+
+    document.getElementById("form").onsubmit = async (ev) => {
+      ev.preventDefault();
+      hideAlert("alert");
+      const fd = new FormData(ev.target);
+      try {
+        await api("/api/v1/employees", {
+          method: "POST",
+          body: JSON.stringify({
+            company_id: s.companyId,
+            name: fd.get("name"),
+            email: fd.get("email"),
+            password: fd.get("password"),
+            area: fd.get("area") || null,
+            role_title: fd.get("role_title") || null,
+            role: fd.get("role") || "analyst",
+          }),
+        });
+        ev.target.reset();
+        showAlert("alert", "Membro adicionado. Ele ja pode fazer login.", "ok");
+        await loadList();
+      } catch (err) {
+        showAlert("alert", err.message);
+      }
+    };
+  </script>
+</body>
+</html>

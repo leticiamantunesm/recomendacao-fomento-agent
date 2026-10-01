@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SADS — Login</title>
+  <link rel="stylesheet" href="/static/styles.css?v=auth3" />
+  <link rel="icon" href="/static/assets/sads-logo.png?v=auth3" />
+</head>
+<body>
+  <header class="nav" id="nav"></header>
+  <main class="wrap" style="max-width:520px">
+    <section class="hero">
+      <div class="eyebrow">Acesso a organizacao</div>
+      <h1 style="margin:0">Entrar no SADS</h1>
+      <p>Use o nome da empresa, seu e-mail corporativo e a senha cadastrada. SSO chegara na Fase B.</p>
+    </section>
+    <div id="alert" hidden></div>
+    <section class="panel">
+      <form id="form">
+        <label>Nome da empresa *</label>
+        <input name="company_name" required autocomplete="organization" placeholder="Razao social ou nome fantasia" />
+        <label>E-mail corporativo *</label>
+        <input name="email" type="email" required autocomplete="username" />
+        <label>Senha *</label>
+        <input name="password" type="password" required autocomplete="current-password" minlength="8" />
+        <p style="margin:0.35rem 0 0;text-align:right">
+          <a href="/forgot-password.html" style="font-size:0.9rem">Esqueci a senha</a>
+        </p>
+        <button class="btn" type="submit">Entrar</button>
+      </form>
+      <p class="muted" style="margin-top:1rem">
+        Ainda nao tem conta?
+        <a href="/register.html">Criar conta da organizacao</a>
+      </p>
+    </section>
+  </main>
+  <script src="/static/app.js?v=auth3"></script>
+  <script>
+    renderNav("login.html");
+    if (isLoggedIn()) {
+      location.replace("/dashboard.html");
+    }
+    document.getElementById("form").onsubmit = async (ev) => {
+      ev.preventDefault();
+      hideAlert("alert");
+      const fd = new FormData(ev.target);
+      const btn = ev.target.querySelector("button[type=submit]");
+      btn.disabled = true;
+      try {
+        const auth = await api("/api/v1/auth/login", {
+          method: "POST",
+          body: JSON.stringify({
+            company_name: fd.get("company_name"),
+            email: fd.get("email"),
+            password: fd.get("password"),
+          }),
+        });
+        setAuthSession(auth);
+        location.href = "/dashboard.html";
+      } catch (err) {
+        showAlert("alert", err.message);
+        btn.disabled = false;
+      }
+    };
+  </script>
+</body>
+</html>

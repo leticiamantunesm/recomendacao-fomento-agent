@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SADS — Inicio</title>
+  <link rel="stylesheet" href="/static/styles.css?v=auth1" />
+  <link rel="icon" href="/static/assets/sads-logo.png?v=auth1" />
+</head>
+<body>
+  <header class="nav" id="nav"></header>
+  <main class="wrap">
+    <section class="hero">
+      <div class="hero-brand">
+        <img src="/static/assets/sads-logo.png?v=auth1" alt="SADS" />
+        <div class="hero-divider" aria-hidden="true"></div>
+        <div>
+          <div class="eyebrow">Sistema de Apoio a Decisao para Fomento a Inovacao</div>
+          <h1 style="margin:0">Fomento a inovacao, com inteligencia</h1>
+        </div>
+      </div>
+      <p>
+        Painel SADS: cadastre a empresa, envie o PDF do projeto e receba o ranking de editais
+        FINEP com score explicavel, lacunas e plano de acao.
+      </p>
+    </section>
+
+    <div id="alert" class="alert error" hidden></div>
+
+    <section class="panel" id="identity">
+      <p class="muted">Carregando sessao...</p>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin-top:0">Atalhos</h2>
+      <div class="cta-row">
+        <a class="cta" href="/project-new.html">Subir novo projeto</a>
+        <a class="cta secondary" href="/materials.html">Materiais subidos</a>
+        <a class="cta secondary" href="/applications.html">Projetos aplicados</a>
+        <span class="cta disabled">Chat (Fase B)</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin-top:0">Dashboard</h2>
+      <div class="grid-metrics" id="metrics"></div>
+    </section>
+
+    <section class="panel" id="projects-panel" hidden>
+      <h2 style="margin-top:0">Seus projetos</h2>
+      <p class="muted">Abra o relatorio para ver dados do projeto e as recomendacoes de editais.</p>
+      <div id="projects-list"></div>
+    </section>
+
+    <p class="footer-note">SADS · Fase A — chat e SSO na Fase B. Identidade visual baseada no pitch deck do TCC.</p>
+  </main>
+  <script src="/static/app.js?v=auth1"></script>
+  <script>
+    renderNav("index.html");
+    (async () => {
+      const s = getSession();
+      const identity = document.getElementById("identity");
+      if (!s.companyId || !s.employeeId) {
+        identity.innerHTML = `
+          <p><strong>Bem-vindo ao SADS.</strong> Para comecar:</p>
+          <ol>
+            <li><a href="/company.html">Cadastre a empresa</a></li>
+            <li><a href="/employee.html">Cadastre um funcionario</a></li>
+          </ol>`;
+        document.getElementById("metrics").innerHTML = `<p class="muted">Metricas aparecem apos a sessao.</p>`;
+        return;
+      }
+      identity.innerHTML = `
+        <p>Ola, <strong>${s.employeeName || "usuario"}</strong></p>
+        <p>Empresa: <strong>${s.companyName || s.companyId}</strong></p>
+        <button class="btn ghost" type="button" id="logout">Trocar sessao</button>`;
+      document.getElementById("logout").onclick = () => { clearSession(); location.reload(); };
+
+      try {
+        const d = await api(`/api/v1/dashboard?company_id=${s.companyId}`);
+        const hit = d.top3_hit_rate == null ? "—" : `${Math.round(d.top3_hit_rate * 100)}%`;
+        document.getElementById("metrics").innerHTML = `
+          <div class="metric"><div class="label">Projetos</div><div class="value">${d.projects_count}</div></div>
+          <div class="metric"><div class="label">Avaliados</div><div class="value">${d.evaluated_count}</div></div>
+          <div class="metric"><div class="label">Aprovados</div><div class="value">${d.approved_count}</div></div>
+          <div class="metric"><div class="label">Rejeitados</div><div class="value">${d.rejected_count}</div></div>
+          <div class="metric"><div class="label">Acerto top 3</div><div class="value">${hit}</div></div>
+          <div class="metric"><div class="label">Economia est.</div><div class="value" style="font-size:1.2rem">${moneyBRL(d.estimated_savings_brl)}</div></div>
+          <div class="metric"><div class="label">Documentos</div><div class="value">${d.documents_count}</div></div>
+          <div class="metric"><div class="label">Funcionarios</div><div class="value">${d.employees_count}</div></div>`;
+
+        const projects = await api(`/api/v1/projects?company_id=${s.companyId}`);
+        if (projects.length) {
+          document.getElementById("projects-panel").hidden = false;
+          document.getElementById("projects-list").innerHTML = projects.slice(0, 12).map((p) => `
+            <div class="project-list-item">
+              <div>
+                <strong>${p.title || "Projeto"}</strong>
+                <div class="muted">${p.status || "—"} · ${p.created_at ? new Date(p.created_at).toLocaleString("pt-BR") : ""}</div>
+              </div>
+              <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+                <a class="btn ghost" style="margin-top:0" href="/project-evaluate.html?id=${p.id}">Ver relatorio</a>
+                <a class="btn ghost" style="margin-top:0" href="/project-new.html?id=${p.id}">Editar</a>
+              </div>
+            </div>`).join("");
+        }
+      } catch (err) {
+        showAlert("alert", err.message);
+      }
+    })();
+  </script>
+</body>
+</html>

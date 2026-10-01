@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <script>try{var t=localStorage.getItem("rf_theme");document.documentElement.setAttribute("data-theme",t==="light"?"light":"dark")}catch(e){}</script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aplicacoes</title>
+  <link rel="stylesheet" href="/static/styles.css?v=clean2" />
+</head>
+<body>
+  <header class="nav" id="nav"></header>
+  <main class="wrap">
+    <section class="hero">
+      <h1>Projetos aplicados</h1>
+      <p>Atualize o aceite ou recusa no fomento. Isso alimenta metricas de acuracia da ferramenta.</p>
+    </section>
+    <div id="alert" hidden></div>
+    <section class="panel">
+      <div id="list" class="muted">Carregando...</div>
+    </section>
+  </main>
+  <script src="/static/app.js?v=clean2"></script>
+  <script>
+    renderNav("applications.html");
+    const s = requireEmployee();
+    if (!s) throw new Error("redirect");
+
+    async function load() {
+      const rows = await api(`/api/v1/applications?company_id=${s.companyId}`);
+      if (!rows.length) {
+        document.getElementById("list").innerHTML =
+          `<p>Nenhuma aplicacao ainda. <a href="/project-new.html">Avalie um projeto</a>.</p>`;
+        return;
+      }
+      document.getElementById("list").innerHTML = rows.map((a) => `
+        <article class="rank-card" data-id="${a.id}">
+          <h3>${a.url
+            ? `<a href="${a.url}" target="_blank" rel="noopener noreferrer">${a.edict_title || a.edict_external_id || "Edital"}</a>`
+            : (a.edict_title || a.edict_external_id || "Edital")}</h3>
+          <p>Score: <span class="score-pill">${a.score ?? "—"}</span> · rank #${a.rank_position ?? "—"}</p>
+          <p class="muted">${a.summary || ""}</p>
+          <p>
+            <a href="/project-evaluate.html?id=${a.project_id}">Ver dossier do projeto →</a>
+            ${a.url ? ` · <a href="${a.url}" target="_blank" rel="noopener noreferrer">Abrir na FINEP ↗</a>` : ""}
+          </p>
+          <div class="row-2">
+            <div>
+              <label>Status</label>
+              <select class="status">
+                ${["recommended","submitted","approved","rejected","cancelled"].map((st) =>
+                  `<option value="${st}" ${a.status === st ? "selected" : ""}>${st}</option>`
+                ).join("")}
+              </select>
+            </div>
+            <div>
+              <label>Valor aprovado (R$)</label>
+              <input class="amount" type="number" step="0.01" value="${a.approved_amount_brl ?? ""}" />
+            </div>
+          </div>
+          <label>Notas / motivo</label>
+          <textarea class="notes">${a.outcome_notes || ""}</textarea>
+          <button class="btn save">Salvar outcome</button>
+        </article>`).join("");
+
+      document.querySelectorAll("article.rank-card").forEach((card) => {
+        card.querySelector(".save").onclick = async () => {
+          hideAlert("alert");
+          const status = card.querySelector(".status").value;
+          const amount = card.querySelector(".amount").value;
+          const notes = card.querySelector(".notes").value;
+          try {
+            await api(`/api/v1/applications/${card.dataset.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                status,
+                approved_amount_brl: amount === "" ? null : Number(amount),
+                outcome_notes: notes || null,
+                was_in_top3: (aRank(card) <= 3),
+              }),
+            });
+            showAlert("alert", "Aplicacao atualizada.", "ok");
+          } catch (err) {
+            showAlert("alert", err.message);
+          }
+        };
+      });
+    }
+
+    function aRank(card) {
+      const t = card.querySelector("p")?.textContent || "";
+      const m = t.match(/rank #(\d+)/);
+      return m ? Number(m[1]) : 99;
+    }
+
+    load().catch((e) => showAlert("alert", e.message));
+  </script>
+</body>
+</html>

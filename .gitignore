@@ -27,6 +27,9 @@ data/texts/*
 !data/texts/.gitkeep
 data/outputs/*
 !data/outputs/.gitkeep
+data/uploads/
+# Metadados do corpus (versionar)
+!data/corpus_manifest.csv
 
 # Modelos / caches de ML
 *.bin
@@ -38,3 +41,8 @@ models/
 *.log
 tmp/
 temp/
+
+# Landing Next.js
+landing/node_modules/
+landing/.next/
+landing/npm-debug.log*

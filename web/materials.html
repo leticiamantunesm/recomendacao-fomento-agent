@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <script>try{var t=localStorage.getItem("rf_theme");document.documentElement.setAttribute("data-theme",t==="light"?"light":"dark")}catch(e){}</script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Materiais</title>
+  <link rel="stylesheet" href="/static/styles.css?v=clean2" />
+  <link rel="icon" href="/static/assets/sads-logo.png?v=clean2" />
+</head>
+<body>
+  <header class="nav" id="nav"></header>
+  <main class="wrap">
+    <section class="hero">
+      <div class="eyebrow">Documentos</div>
+      <h1>Materiais subidos</h1>
+      <p>Repositório de documentos. Se o tipo for <strong>Projeto</strong> (PDF), o sistema extrai o texto, avalia editais e abre a página de recomendações.</p>
+    </section>
+    <div id="alert" hidden></div>
+    <section class="panel">
+      <h2 style="margin-top:0">Enviar arquivo</h2>
+      <form id="form" class="upload-grid">
+        <div class="field">
+          <label for="file-input">Arquivo</label>
+          <input id="file-input" type="file" name="file" required />
+        </div>
+        <div class="field">
+          <label for="doc-type">Tipo</label>
+          <select id="doc-type" name="doc_type">
+            <option value="other">Outro</option>
+            <option value="project_pdf">Projeto (gera recomendações)</option>
+            <option value="budget">Orçamento</option>
+            <option value="annex">Anexo</option>
+          </select>
+        </div>
+        <div class="field field-action">
+          <button class="btn" type="submit">Upload</button>
+        </div>
+      </form>
+    </section>
+    <section class="panel">
+      <h2 style="margin-top:0">Arquivos</h2>
+      <div id="list" class="muted">Carregando...</div>
+    </section>
+  </main>
+  <script src="/static/app.js?v=clean2"></script>
+  <script>
+    renderNav("materials.html");
+    const s = requireEmployee();
+    if (!s) throw new Error("redirect");
+
+    const TYPE_LABELS = {
+      other: "Outro",
+      project_pdf: "Projeto",
+      budget: "Orçamento",
+      annex: "Anexo",
+    };
+
+    function escAttr(v) {
+      return String(v ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;");
+    }
+
+    function shortPath(p) {
+      const s = String(p || "");
+      if (s.length <= 64) return s;
+      return "…" + s.slice(-60);
+    }
+
+    async function load() {
+      const rows = await api(`/api/v1/documents?company_id=${s.companyId}`);
+      if (!rows.length) {
+        document.getElementById("list").textContent = "Nenhum documento.";
+        return;
+      }
+      document.getElementById("list").innerHTML = `
+        <div class="doc-list">
+          ${rows
+            .map(
+              (d) => `
+            <article class="doc-card" data-id="${escAttr(d.id)}" data-project="${escAttr(d.project_id || "")}">
+              <div class="doc-card-main">
+                <div class="field">
+                  <label>Arquivo</label>
+                  <input class="fname" value="${escAttr(d.filename || "")}" />
+                  <div class="muted doc-path" title="${escAttr(d.file_path || "")}">${escAttr(shortPath(d.file_path))}</div>
+                </div>
+                <div class="field">
+                  <label>Tipo</label>
+                  <select class="dtype">
+                    ${["other", "project_pdf", "budget", "annex"]
+                      .map(
+                        (t) =>
+                          `<option value="${t}" ${d.doc_type === t ? "selected" : ""}>${TYPE_LABELS[t] || t}</option>`
+                      )
+                      .join("")}
+                  </select>
+                </div>
+                <div class="doc-meta">
+                  <div><span class="muted">Tamanho</span><strong>${d.byte_size != null ? Math.round(d.byte_size / 1024) + " KB" : "—"}</strong></div>
+                  <div><span class="muted">Data</span><strong>${d.created_at ? new Date(d.created_at).toLocaleString("pt-BR") : "—"}</strong></div>
+                </div>
+              </div>
+              <div class="doc-card-actions">
+                ${
+                  d.project_id
+                    ? `<a class="btn ghost" href="/project-evaluate.html?id=${escAttr(d.project_id)}">Ver resultado</a>`
+                    : ""
+                }
+                <button class="btn ghost save" type="button">Salvar</button>
+                <button class="btn ghost del" type="button">Excluir</button>
+              </div>
+            </article>`
+            )
+            .join("")}
+        </div>`;
+
+      document.querySelectorAll(".doc-card[data-id]").forEach((card) => {
+        const id = card.dataset.id;
+        card.querySelector(".save").onclick = async () => {
+          hideAlert("alert");
+          try {
+            await api(`/api/v1/documents/${id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                filename: card.querySelector(".fname").value.trim(),
+                doc_type: card.querySelector(".dtype").value,
+              }),
+            });
+            showAlert("alert", "Material atualizado.", "ok");
+            await load();
+          } catch (err) {
+            showAlert("alert", err.message);
+          }
+        };
+        card.querySelector(".del").onclick = async () => {
+          const dtype = card.querySelector(".dtype").value;
+          const msg =
+            dtype === "project_pdf"
+              ? "Excluir este PDF remove também o projeto do dashboard. Continuar?"
+              : "Excluir este material?";
+          if (!confirm(msg)) return;
+          hideAlert("alert");
+          try {
+            const res = await api(`/api/v1/documents/${id}`, { method: "DELETE" });
+            const extra = res.project_deleted ? " Projeto removido do contador." : "";
+            showAlert("alert", "Material excluído." + extra, "ok");
+            await load();
+          } catch (err) {
+            showAlert("alert", err.message);
+          }
+        };
+      });
+    }
+    load().catch((e) => showAlert("alert", e.message));
+
+    document.getElementById("form").onsubmit = async (ev) => {
+      ev.preventDefault();
+      hideAlert("alert");
+      const fd = new FormData(ev.target);
+      const docType = fd.get("doc_type");
+      const file = fd.get("file");
+      const btn = ev.target.querySelector("button");
+      btn.disabled = true;
+      btn.textContent = "Enviando...";
+      try {
+        if (docType === "project_pdf") {
+          if (!file || !String(file.name || "").toLowerCase().endsWith(".pdf")) {
+            throw new Error("Para tipo Projeto, envie um arquivo PDF.");
+          }
+          const pfd = new FormData();
+          pfd.set("file", file);
+          pfd.set("company_id", s.companyId);
+          if (s.employeeId) pfd.set("employee_id", s.employeeId);
+          showAlert("alert", "Extraindo PDF e gerando relatório...", "info");
+          const p = await api("/api/v1/projects", { method: "POST", body: pfd });
+          location.href = `/project-evaluate.html?id=${p.id}`;
+          return;
+        }
+
+        fd.set("company_id", s.companyId);
+        await api("/api/v1/documents", { method: "POST", body: fd });
+        ev.target.reset();
+        showAlert("alert", "Arquivo enviado.", "ok");
+        await load();
+      } catch (err) {
+        showAlert("alert", err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Upload";
+      }
+    };
+  </script>
+</body>
+</html>
