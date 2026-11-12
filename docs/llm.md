@@ -20,27 +20,38 @@ LLM_PROVIDER=none
 ```text
 GenerationAgent → get_llm_client()
                       ├─ none/template  → render_template_draft()
-                      └─ ollama/openai… → (não integrado no MVP) → mesmo template
+                      ├─ ollama         → /api/generate (fallback → template)
+                      └─ openai/…       → ainda não integrado → template
+
+FormExtractionAgent → guess_form_fields() (heurística)
+                   └─ se LLM_PROVIDER=ollama e campos fracos → extract_json (Ollama)
 ```
 
-O rascunho monta seções (resumo, trechos do edital/projeto, objetivos, próximos passos) **sem** chamar rede.
+Com `LLM_PROVIDER=none`, o rascunho e o formulário **não** chamam rede (só heurística + template).
 
 Código:
 
-- `app/llm.py` — cliente + template
-- `agents/generation_agent.py` — agente de geração
+- `app/llm.py` — cliente + template + Ollama
+- `agents/generation_agent.py` — rascunho de aderência
+- `agents/form_extraction_agent.py` — formulário do projeto (PDF → campos)
+- `app/pdf_form.py` — heurísticas de seção / confiança
+
+## Ollama (opcional, local)
+
+```env
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.2
+FORM_EXTRACT_USE_LLM=true
+```
+
+Requer Ollama instalado e o modelo baixado (`ollama pull llama3.2`). Se o serviço estiver fora, a heurística/template continua valendo.
 
 ## O que isso NÃO é
 
 - Não substitui banca avaliadora
 - Não gera PDF final “pronto para submissão” sem revisão humana
-- Não usa OpenAI/Anthropic/Ollama no caminho feliz do MVP
-
-## Evolução futura (opcional, fora do custo zero)
-
-1. Implementar cliente Ollama local (`LLM_PROVIDER=ollama`)
-2. Manter template como fallback se Ollama/API falhar
-3. Nunca commitar chaves de API
+- Não usa API paga no caminho feliz do MVP (`LLM_PROVIDER=none`)
 
 ## Smoke check
 

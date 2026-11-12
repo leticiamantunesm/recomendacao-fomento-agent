@@ -1,0 +1,47 @@
+[
+  {
+    "nome": "programa-bndes-mais-inovacao-investimento",
+    "titulo": "BNDES Mais Inovação - Investimento em inovação",
+    "infoBasicas": "Apoio a investimentos em inovação de empresas.",
+    "setores": ["Indústria, comércio e serviços"],
+    "finalidades": ["Inovação", "Software"],
+    "qualificadores": ["Inovação"],
+    "mpme": true,
+    "aviso": "",
+    "url": "/wps/portal/site/home/financiamento/produto/programa-bndes-mais-inovacao-investimento",
+    "expirado": false
+  },
+  {
+    "nome": "programa-bndes-mais-inovacao-difusao-tecnologica",
+    "titulo": "BNDES Mais Inovação - Difusão tecnológica (Indústria 4.0)",
+    "infoBasicas": "Apoio à difusão tecnológica.",
+    "setores": [],
+    "finalidades": ["Inovação"],
+    "qualificadores": ["Inovação"],
+    "mpme": true,
+    "url": "/wps/portal/site/home/financiamento/produto/programa-bndes-mais-inovacao-difusao-tecnologica",
+    "expirado": false
+  },
+  {
+    "nome": "cartao-bndes",
+    "titulo": "Cartão BNDES",
+    "infoBasicas": "Crédito pré-aprovado para aquisição de bens e serviços.",
+    "setores": [],
+    "finalidades": ["Inovação", "Software"],
+    "qualificadores": ["Inovação"],
+    "mpme": true,
+    "url": "http://www.cartaobndes.gov.br",
+    "expirado": false
+  },
+  {
+    "nome": "linha-generica-sem-inovacao",
+    "titulo": "Linha Genérica Sem Inovação",
+    "infoBasicas": "Não deve entrar no filtro innovation_only.",
+    "setores": [],
+    "finalidades": ["Capital de giro"],
+    "qualificadores": ["Capital de giro"],
+    "mpme": false,
+    "url": "/wps/portal/site/home/financiamento/produto/linha-generica",
+    "expirado": false
+  }
+]

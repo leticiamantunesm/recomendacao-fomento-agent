@@ -1,0 +1,41 @@
+{
+  "basePath": "/produtos/v1",
+  "host": "gateway-h.apis.bndes.gov.br",
+  "info": {
+    "description": "Portfólio de produtos",
+    "title": "Portfólio",
+    "version": "1"
+  },
+  "paths": {
+    "/obterconfiguracaooperacional": {
+      "parameters": [],
+      "post": {
+        "description": "Obtém a configuração operacional",
+        "parameters": [
+          {
+            "description": "Corpo da requisição",
+            "in": "body",
+            "name": "Payload",
+            "required": false,
+            "schema": {
+              "properties": {
+                "payload": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "summary": "Obtém a configuração operacional"
+      }
+    }
+  },
+  "schemes": ["https"],
+  "swagger": "2.0"
+}

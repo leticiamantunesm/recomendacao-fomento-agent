@@ -36,6 +36,22 @@ class Settings(BaseSettings):
         default="http://localhost:11434",
         alias="OLLAMA_BASE_URL",
     )
+    ollama_model: str = Field(
+        default="llama3.2",
+        alias="OLLAMA_MODEL",
+        description="Modelo Ollama para rascunhos e extracao estruturada do formulario.",
+    )
+    ollama_timeout_seconds: float = Field(
+        default=90.0,
+        alias="OLLAMA_TIMEOUT_SECONDS",
+        ge=5.0,
+        le=600.0,
+    )
+    form_extract_use_llm: bool = Field(
+        default=True,
+        alias="FORM_EXTRACT_USE_LLM",
+        description="Se true e LLM_PROVIDER=ollama, reforca campos fracos do formulario via Ollama.",
+    )
     data_dir: Path = Field(default=ROOT_DIR / "data", alias="DATA_DIR")
     raw_pdfs_dir: Path = Field(default=ROOT_DIR / "data" / "raw_pdfs", alias="RAW_PDFS_DIR")
     texts_dir: Path = Field(default=ROOT_DIR / "data" / "texts", alias="TEXTS_DIR")
@@ -81,6 +97,86 @@ class Settings(BaseSettings):
     smtp_password: str | None = Field(default=None, alias="SMTP_PASSWORD")
     smtp_from: str | None = Field(default=None, alias="SMTP_FROM")
     smtp_use_tls: bool = Field(default=True, alias="SMTP_USE_TLS")
+
+    # Criptografia at-rest de dossiês (PDF + raw_text + form_data). Server-side only.
+    # Gerar: python -c "from app.crypto import generate_encryption_key; print(generate_encryption_key())"
+    project_data_encryption_key: str | None = Field(
+        default=None,
+        alias="PROJECT_DATA_ENCRYPTION_KEY",
+        description="Chave 32 bytes (base64 ou hex 64) para cifra at-rest. Ausente = legado em claro.",
+    )
+
+    # --- BNDES Developers@BNDES (Opções de financiamento) — server-side only ---
+    # Credenciais: Loja de APIs https://apis.bndes.gov.br/store/ (app registrada).
+    # Token URL / path / método: copiar do Swagger após assinar a API
+    # (ver docs/integrations/BNDES_API_OPCOES_FINANCIAMENTO.md). Não inventar.
+    bndes_client_id: str | None = Field(default=None, alias="BNDES_CLIENT_ID")
+    bndes_client_secret: str | None = Field(default=None, alias="BNDES_CLIENT_SECRET")
+    bndes_token_url: str | None = Field(
+        default=None,
+        alias="BNDES_TOKEN_URL",
+        description="URL OAuth2 token do gateway BNDES (Swagger oficial da API).",
+    )
+    bndes_oauth_scope: str | None = Field(
+        default=None,
+        alias="BNDES_OAUTH_SCOPE",
+        description="Scope OAuth2 se o Swagger da API exigir.",
+    )
+    bndes_api_base_url: str | None = Field(
+        default=None,
+        alias="BNDES_API_BASE_URL",
+        description="Gateway base genérico BNDES (fallback).",
+    )
+    # Portfólio (Swagger oficial fornecido): host homolog + basePath /produtos/v1
+    bndes_portfolio_base_url: str = Field(
+        default="https://gateway-h.apis.bndes.gov.br/produtos/v1",
+        alias="BNDES_PORTFOLIO_BASE_URL",
+        description="Base Portfólio (Swagger host+basePath). Homolog por padrão.",
+    )
+    bndes_portfolio_obter_config_url: str | None = Field(
+        default=None,
+        alias="BNDES_PORTFOLIO_OBTER_CONFIG_URL",
+        description="URL completa de POST /obterconfiguracaooperacional (override).",
+    )
+    bndes_financing_options_path: str | None = Field(
+        default=None,
+        alias="BNDES_FINANCING_OPTIONS_PATH",
+        description="Path relativo ao gateway (Swagger). Preferir URL completa abaixo.",
+    )
+    bndes_financing_options_url: str | None = Field(
+        default=None,
+        alias="BNDES_FINANCING_OPTIONS_URL",
+        description="URL completa do recurso Opções de financiamento (Swagger).",
+    )
+    bndes_financing_options_method: str = Field(
+        default="GET",
+        alias="BNDES_FINANCING_OPTIONS_METHOD",
+        description="Método HTTP do recurso (confirmar no Swagger).",
+    )
+    bndes_public_linhas_url: str = Field(
+        default="https://www.bndes.gov.br/apoioFinanceiro/rest/linhasProgramas",
+        alias="BNDES_PUBLIC_LINHAS_URL",
+        description="Catálogo público do Navegador (não é a API OAuth).",
+    )
+    bndes_timeout_seconds: float = Field(
+        default=30.0,
+        alias="BNDES_TIMEOUT_SECONDS",
+        ge=3.0,
+        le=180.0,
+    )
+    bndes_max_retries: int = Field(
+        default=2,
+        alias="BNDES_MAX_RETRIES",
+        ge=0,
+        le=5,
+    )
+    bndes_retry_backoff_seconds: float = Field(
+        default=1.0,
+        alias="BNDES_RETRY_BACKOFF_SECONDS",
+        ge=0.1,
+        le=30.0,
+    )
+    bndes_verify_ssl: bool = Field(default=True, alias="BNDES_VERIFY_SSL")
 
     @field_validator("data_dir", "raw_pdfs_dir", "texts_dir", "outputs_dir", mode="before")
     @classmethod

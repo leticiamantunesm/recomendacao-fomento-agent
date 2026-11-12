@@ -55,6 +55,14 @@
         </div>
         <label>Areas (;)</label>
         <input name="areas" />
+        <label>O que a empresa mais precisa agora?</label>
+        <select name="goal_preference">
+          <option value="auto">Deixar o SADS decidir (recomendado)</option>
+          <option value="cash">Dinheiro / subvenção para executar o projeto</option>
+          <option value="fiscal">Incentivo fiscal (ex.: Lei do Bem / IR)</option>
+          <option value="credito">Crédito / financiamento reembolsável</option>
+          <option value="parceria">Parceria de PD&amp;I (ex.: Embrapii)</option>
+        </select>
         <label>Contrapartida</label>
         <textarea name="counterpart"></textarea>
         <label>Notas</label>
@@ -82,6 +90,7 @@
       form.budget_brl.value = f.budget_brl || "";
       form.duration_months.value = f.duration_months || "";
       form.areas.value = Array.isArray(f.areas) ? f.areas.join("; ") : (f.areas || "");
+      form.goal_preference.value = f.goal_preference || "auto";
       form.counterpart.value = f.counterpart || "";
       form.notes.value = f.notes || "";
       const chars = f.extracted_chars != null ? f.extracted_chars : (p.raw_text_preview || "").length;
@@ -146,6 +155,7 @@
         budget_brl: fd.get("budget_brl") || null,
         duration_months: fd.get("duration_months") ? Number(fd.get("duration_months")) : null,
         areas: String(fd.get("areas") || "").split(/[;|,]/).map((x) => x.trim()).filter(Boolean),
+        goal_preference: fd.get("goal_preference") || "auto",
         counterpart: fd.get("counterpart"),
         notes: fd.get("notes"),
       };

@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SADS — Demo relatório (guardrail) · Solar Bairro</title>
+  <meta name="description" content="Demonstração estática do relatório SADS com guardrail: sem % em orientação BNDES fora da base indexada." />
+  <style>
+/* Relatório SADS — identidade do pitch deck (navy + ciano) */
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap");
+
+:root {
+  --bg: #070b2e;
+  --surface: rgba(12, 18, 56, 0.92);
+  --surface-alt: rgba(4, 7, 31, 0.65);
+  --text: #e8eefc;
+  --muted: #9aa8c7;
+  --line: rgba(46, 199, 255, 0.18);
+  --primary: #2ec7ff;
+  --primary-deep: #070b2e;
+  --primary-mid: #1490d4;
+  --primary-soft: rgba(46, 199, 255, 0.14);
+  --success: #3dd68c;
+  --success-soft: rgba(61, 214, 140, 0.14);
+  --warning: #ffb020;
+  --warning-soft: rgba(255, 176, 32, 0.16);
+  --danger: #ff6b7a;
+  --danger-soft: rgba(255, 107, 122, 0.14);
+  --shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+  --radius: 16px;
+  --font-display: "Montserrat", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body.report-body {
+  margin: 0;
+  font-family: var(--font-body);
+  background:
+    radial-gradient(900px 500px at 100% 0%, rgba(46, 199, 255, 0.16) 0%, transparent 55%),
+    linear-gradient(135deg, #04071f 0%, #070b2e 45%, #10184a 100%);
+  color: var(--text);
+  min-height: 100vh;
+  background-attachment: fixed;
+}
+
+button, input { font: inherit; }
+button { cursor: pointer; }
+
+.report-app { min-height: 100vh; }
+.brand-ribbon {
+  height: 3px;
+  width: 100%;
+  background: linear-gradient(90deg, transparent, var(--primary), #5ad6ff, transparent);
+}
+.report-topbar {
+  height: 72px;
+  background: rgba(4, 7, 31, 0.92);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(12px);
+}
+.brand {
+  display: flex; align-items: center; gap: 12px;
+  font-weight: 750; color: #fff; text-decoration: none;
+}
+.brand img {
+  height: 56px;
+  width: auto;
+  max-width: min(120px, 30vw);
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 0 12px rgba(46, 199, 255, 0.4));
+}
+.top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ghost, .primary {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 13px;
+  background: transparent;
+  color: #fff;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
+}
+.ghost:hover { border-color: var(--primary); color: var(--primary); }
+.primary {
+  background: linear-gradient(135deg, var(--primary) 0%, #1490d4 100%);
+  color: #041026;
+  border-color: transparent;
+  font-weight: 700;
+  box-shadow: 0 8px 18px rgba(46, 199, 255, 0.28);
+}
+
+.layout { display: grid; grid-template-columns: 250px 1fr; }
+.sidebar {
+  min-height: calc(100vh - 76px);
+  background: rgba(4, 7, 31, 0.72);
+  border-right: 1px solid var(--line);
+  padding: 24px 16px;
+  position: sticky;
+  top: 76px;
+  align-self: start;
+}
+.project-switcher {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 13px;
+  margin-bottom: 22px;
+  background: var(--surface-alt);
+}
+.eyebrow {
+  color: var(--primary);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  font-weight: 750;
+  font-family: var(--font-display);
+}
+.project-switcher strong { display: block; margin-top: 4px; color: #fff; }
+.side-nav { display: grid; gap: 6px; }
+.side-nav a {
+  text-decoration: none;
+  color: var(--muted);
+  padding: 11px 12px;
+  border-radius: 9px;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+}
+.side-nav a:hover, .side-nav a.active {
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-weight: 700;
+}
+.side-nav span { color: #6b7a9a; font-size: 12px; }
+
+.report-main { padding: 30px; max-width: 1500px; width: 100%; margin: 0 auto; }
+.page-head {
+  display: flex; align-items: start; justify-content: space-between; gap: 20px; margin-bottom: 22px;
+}
+.report-main h1 {
+  font-family: var(--font-display);
+  font-size: 28px; margin: 4px 0 7px; letter-spacing: -.02em;
+  color: #fff; font-weight: 800;
+}
+.report-main h2 {
+  font-family: var(--font-display);
+  font-size: 19px; margin: 0; color: #fff; font-weight: 700;
+}
+.report-main h3 { font-size: 15px; margin: 0; color: #fff; }
+.report-main p { line-height: 1.5; }
+.muted { color: var(--muted); }
+.status {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--success-soft); color: var(--success);
+  border: 1px solid rgba(61, 214, 140, 0.35); border-radius: 999px;
+  padding: 7px 11px; font-size: 13px; font-weight: 750;
+}
+.status.warn { background: var(--warning-soft); color: var(--warning); }
+.status.err { background: var(--danger-soft); color: var(--danger); }
+.status::before { content: ""; width: 8px; height: 8px; background: currentColor; border-radius: 50%; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  backdrop-filter: blur(8px);
+}
+.section { margin-top: 22px; scroll-margin-top: 90px; }
+.section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 13px; gap: 12px; flex-wrap: wrap; }
+.section-note { font-size: 13px; color: var(--muted); }
+
+.hero { display: grid; grid-template-columns: 1.55fr .85fr; gap: 18px; }
+.recommendation { padding: 24px; position: relative; overflow: hidden; }
+.recommendation::after {
+  content: ""; position: absolute; width: 180px; height: 180px;
+  border-radius: 50%; background: var(--primary-soft); right: -65px; top: -80px;
+}
+.rank { color: var(--primary); font-size: 13px; font-weight: 800; margin-bottom: 8px; font-family: var(--font-display); letter-spacing: .04em; }
+.program-title { font-size: 24px; margin: 0 0 7px; max-width: 90%; position: relative; z-index: 1; font-family: var(--font-display); color: #fff; }
+.program-title a.edict-link,
+a.edict-link {
+  color: var(--primary, #2ec7ff);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(46, 199, 255, 0.35);
+}
+.program-title a.edict-link:hover,
+a.edict-link:hover {
+  color: #7adfff;
+  border-bottom-color: #7adfff;
+}
+a.muted-link { color: inherit; border-bottom-color: rgba(154, 168, 199, 0.45); font-size: 0.92em; }
+a.chip-link {
+  text-decoration: none;
+  color: #041018;
+  background: var(--primary, #2ec7ff);
+  border: none;
+}
+a.chip-link:hover { filter: brightness(1.08); }
+.program-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; position: relative; z-index: 1; }
+.chip {
+  padding: 6px 9px; border: 1px solid var(--line); background: var(--surface-alt);
+  border-radius: 999px; font-size: 12px; color: var(--muted);
+}
+.reasons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 18px; position: relative; z-index: 1; }
+.reason { border-left: 3px solid var(--primary); padding-left: 10px; font-size: 13px; color: #c9d4ef; }
+
+.score-card { display: grid; place-items: center; text-align: center; }
+.score-ring {
+  width: 150px; height: 150px; border-radius: 50%;
+  display: grid; place-items: center; margin: 8px 0 16px; position: relative;
+}
+.score-ring::before {
+  content: ""; width: 118px; height: 118px; background: #0c1238; border-radius: 50%; position: absolute;
+}
+.score-number { position: relative; font-size: 31px; font-weight: 850; z-index: 1; font-family: var(--font-display); color: #fff; }
+.range { font-weight: 750; }
+.range.high { color: var(--success); }
+.range.mid { color: var(--warning); }
+.range.low { color: var(--danger); }
+
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.kpi .label { color: var(--muted); font-size: 12px; }
+.kpi .value { font-size: 18px; font-weight: 800; margin-top: 5px; font-family: var(--font-display); color: var(--primary); }
+.kpi .sub { font-size: 12px; color: var(--muted); margin-top: 5px; }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.profile-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+.profile-item { padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-alt); }
+.profile-item strong { display: block; margin-top: 5px; color: #fff; }
+
+.bar-row { margin: 15px 0; }
+.bar-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 7px; }
+.track { height: 9px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden; }
+.fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #1490d4, var(--primary)); }
+.fill.warning { background: #daa03a; }
+.fill.danger { background: var(--danger); }
+
+.ranking { display: grid; gap: 12px; }
+.program-row {
+  display: grid; grid-template-columns: 42px 1.25fr .9fr 1fr 90px 28px;
+  align-items: center; gap: 14px; padding: 15px;
+  border: 1px solid var(--line); border-radius: 12px;
+  transition: .2s ease; cursor: pointer; background: var(--surface-alt); text-align: left; width: 100%;
+  font: inherit; color: inherit;
+}
+.program-row:hover { border-color: var(--primary); transform: translateY(-1px); }
+.medal { width: 34px; height: 34px; border-radius: 10px; background: var(--primary-soft); color: var(--primary); display:grid; place-items:center; font-weight:800; }
+.fit { font-size: 18px; font-weight: 850; color: var(--primary); font-family: var(--font-display); }
+.chance { font-size: 12px; font-weight: 750; padding: 6px 9px; border-radius: 999px; width: fit-content; }
+.high { color: var(--success); background: var(--success-soft); }
+.medium { color: var(--warning); background: var(--warning-soft); }
+.low { color: var(--danger); background: var(--danger-soft); }
+.arrow { color: #6b7a9a; font-size: 20px; }
+
+.gap-list { display: grid; gap: 11px; }
+.gap-item { border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; grid-template-columns: 10px 1fr auto; gap: 12px; align-items: start; }
+.severity { width: 10px; height: 100%; min-height: 48px; border-radius: 10px; background: var(--warning); }
+.severity.high-sev { background: var(--danger); }
+.impact { font-size: 11px; padding: 5px 8px; border-radius: 999px; background: var(--warning-soft); color: var(--warning); font-weight: 800; }
+.impact.critical { background: var(--danger-soft); color: var(--danger); }
+
+.action-list { display: grid; gap: 13px; }
+.action { display: grid; grid-template-columns: 30px 1fr auto; gap: 11px; align-items: center; padding-bottom: 13px; border-bottom: 1px solid var(--line); }
+.action:last-child { border-bottom: 0; padding-bottom: 0; }
+.check { width: 28px; height: 28px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: #fff; }
+.deadline { color: var(--muted); font-size: 12px; }
+
+.footer-note { margin: 24px 0 4px; color: var(--muted); font-size: 12px; text-align: center; }
+.banner-alert {
+  margin-bottom: 16px; padding: 12px 14px; border-radius: 12px;
+  background: var(--primary-soft); color: var(--primary); font-weight: 600; font-size: 14px;
+  border: 1px solid var(--line);
+}
+.banner-alert.ok { background: var(--success-soft); color: var(--success); }
+.banner-alert.err { background: var(--danger-soft); color: var(--danger); }
+.banner-alert.info { background: var(--primary-soft); color: var(--primary); }
+.detail-panel { display: none; margin-top: 12px; }
+.detail-panel.open { display: block; }
+
+.track-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid var(--line);
+  margin-top: 10px;
+}
+.track-badge.pd_i {
+  background: rgba(46, 199, 255, 0.16);
+  color: var(--primary);
+  border-color: rgba(46, 199, 255, 0.45);
+}
+.track-badge.modernization_credit {
+  background: rgba(61, 214, 140, 0.14);
+  color: var(--success);
+  border-color: rgba(61, 214, 140, 0.4);
+}
+.track-badge.mixed {
+  background: rgba(255, 176, 32, 0.16);
+  color: var(--warning);
+  border-color: rgba(255, 176, 32, 0.4);
+}
+.track-badge.unclear {
+  background: var(--surface-alt);
+  color: var(--muted);
+}
+.track-hint {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--muted);
+  max-width: 62ch;
+}
+.criteria-note {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.bar-row.na .fill { background: rgba(255,255,255,0.15); }
+.bar-row.na strong { color: var(--muted); font-size: 12px; }
+
+.alert-banner {
+  border-radius: 16px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  border: 1px solid transparent;
+  animation: alert-pulse 1.6s ease-in-out 1;
+}
+.alert-banner.danger {
+  background: linear-gradient(135deg, rgba(255, 107, 122, 0.28), rgba(120, 20, 40, 0.45));
+  border-color: rgba(255, 107, 122, 0.65);
+  box-shadow: 0 0 0 1px rgba(255, 107, 122, 0.25), 0 12px 32px rgba(255, 70, 90, 0.2);
+}
+.alert-banner.warn {
+  background: linear-gradient(135deg, rgba(255, 176, 32, 0.22), rgba(90, 60, 0, 0.35));
+  border-color: rgba(255, 176, 32, 0.55);
+}
+.alert-banner.ok {
+  background: linear-gradient(135deg, rgba(61, 214, 140, 0.18), rgba(10, 60, 40, 0.35));
+  border-color: rgba(61, 214, 140, 0.45);
+}
+.alert-banner-kicker {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  color: #fff;
+}
+.alert-banner strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.alert-banner p { margin: 0; color: #e8eefc; font-size: 14px; max-width: 70ch; }
+@keyframes alert-pulse {
+  0% { transform: scale(0.98); opacity: 0.7; }
+  40% { transform: scale(1.01); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.alert-panel { border-color: rgba(255, 107, 122, 0.25); }
+.alert-list { display: grid; gap: 10px; }
+.alert-item {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  gap: 12px;
+  align-items: start;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface-alt);
+}
+.alert-item .dot {
+  width: 10px;
+  min-height: 42px;
+  border-radius: 10px;
+  background: var(--warning);
+}
+.alert-item.warn .dot { background: var(--warning); }
+.alert-item.danger .dot { background: var(--danger); }
+.alert-item.ok .dot { background: var(--success); }
+.alert-item.ok { border-color: rgba(61, 214, 140, 0.3); }
+.alert-item.warn {
+  border-color: rgba(255, 176, 32, 0.45);
+  background: rgba(255, 176, 32, 0.1);
+}
+.alert-item.danger {
+  border-color: rgba(255, 107, 122, 0.55);
+  background: rgba(255, 107, 122, 0.14);
+  box-shadow: inset 3px 0 0 var(--danger);
+}
+.alert-item strong { display: block; color: #fff; margin-bottom: 4px; font-size: 15px; }
+.alert-item p { margin: 0; color: var(--muted); font-size: 13px; }
+.alert-item .tag {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: var(--warning-soft);
+  color: var(--warning);
+  white-space: nowrap;
+}
+.alert-item.warn .tag { background: var(--warning-soft); color: var(--warning); }
+.alert-item.danger .tag { background: var(--danger-soft); color: var(--danger); }
+.alert-item.ok .tag { background: var(--success-soft); color: var(--success); }
+
+.suggest-row {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+.suggest-chip {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--primary-soft);
+}
+.suggest-chip strong { display: block; color: #fff; margin-bottom: 4px; }
+.suggest-chip span { color: var(--muted); font-size: 13px; }
+
+.blocked-mini {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+.blocked-mini .row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 107, 122, 0.25);
+  background: var(--danger-soft);
+  font-size: 13px;
+}
+.blocked-mini .row strong { color: #fff; }
+.blocked-mini .row span { color: var(--danger); font-weight: 700; white-space: nowrap; }
+
+@media (max-width: 1050px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .hero, .two-col { grid-template-columns: 1fr; }
+  .kpis { grid-template-columns: repeat(2, 1fr); }
+  .program-row { grid-template-columns: 38px 1fr 70px 24px; }
+  .program-row .hide-tablet { display: none; }
+}
+@media (max-width: 650px) {
+  .report-topbar { padding: 0 15px; }
+  .top-actions .ghost.hide-mobile { display: none; }
+  .report-main { padding: 18px; }
+  .page-head { flex-direction: column; }
+  .reasons, .profile-grid, .kpis { grid-template-columns: 1fr; }
+  .program-title { max-width: 100%; font-size: 21px; }
+}
+@media print {
+  .report-topbar, .sidebar, .top-actions, .banner-alert, .no-print, .brand-ribbon { display: none !important; }
+  .layout { display: block; }
+  .report-main { max-width: none; padding: 0; }
+  body.report-body { background: white; color: #111; }
+  .card { box-shadow: none; break-inside: avoid; background: #fff; color: #111; }
+  .section { break-inside: avoid; }
+}
+
+  .demo-banner {
+    margin: 12px 28px 0;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(46,199,255,.35);
+    background: rgba(46,199,255,.12);
+    color: #cfefff;
+    font-size: 13px;
+  }
+  .demo-banner strong { color: #fff; }
+  .brand-text { font-family: var(--font-display); font-weight: 800; letter-spacing: .04em; color: #fff; }
+  </style>
+</head>
+<body class="report-body">
+  <div class="brand-ribbon" aria-hidden="true"></div>
+  <div class="demo-banner">
+    <strong>Demo estática (sem API).</strong>
+    Caso ilustrativo: modernização solar sem P&D — o SADS <em>não</em> mostra % de “aprovação BNDES”;
+    mostra orientação fora da base indexada (piloto FINEP/FAPESP). Abra este arquivo localmente ou via GitHub Pages.
+  </div>
+  <div class="report-app">
+    <header class="report-topbar">
+      <div class="brand" aria-label="SADS">
+        <span class="brand-text">SADS</span>
+      </div>
+      <div class="top-actions">
+        <button class="ghost" type="button" onclick="window.print()">Imprimir / PDF</button>
+        <a class="primary" href="#ranking">Ver ranking</a>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="project-switcher">
+          <div class="eyebrow">Projeto analisado</div>
+          <strong id="side-title">Solar Bairro</strong>
+          <small class="muted" id="side-meta">Modernização / Crédito · demo guardrail</small>
+        </div>
+        <nav class="side-nav">
+          <a href="#resumo" class="active">Resumo <span>01</span></a>
+          <a href="#alertas">Alertas <span>02</span></a>
+          <a href="#ranking">Ranking <span>03</span></a>
+          <a href="#porque">Por que #1 <span>04</span></a>
+          <a href="#proximos">Próximos passos <span>05</span></a>
+        </nav>
+      </aside>
+
+      <main class="report-main">
+        <div class="page-head">
+          <div>
+            <div class="eyebrow">Relatório de recomendação de fomento</div>
+            <h1 id="page-title">BAD_02 — Solar Bairro (instalação fotovoltaica)</h1>
+            <div class="muted" id="page-subtitle">Aquisição e instalação de placas solares prontas — sem adicionalidade de P&amp;D evidenciada.</div>
+            <div id="track-badge" class="track-badge modernization_credit">Modernização / Crédito</div>
+            <p id="track-hint" class="track-hint">Sem match típico de subvenção P&amp;D na base: o caminho tende a crédito/consultoria (orientação — não é aprovação BNDES).</p>
+          </div>
+          <div class="status warn" id="page-status">Trilha crédito · orientação</div>
+        </div>
+
+        <section id="resumo" class="hero">
+          <article class="card recommendation" id="hero-rec"></article>
+          <article class="card score-card" id="hero-score"></article>
+        </section>
+
+        <section class="section kpis" id="kpi-row"></section>
+
+        <section id="alertas" class="section">
+          <div class="section-head">
+            <h2>Alertas e avisos</h2>
+            <span class="section-note">Leia antes de qualquer encaminhamento</span>
+          </div>
+          <div id="alert-banner" class="alert-banner warn"></div>
+          <article class="card alert-panel">
+            <div class="alert-list" id="alertas-body"></div>
+            <div class="suggest-row" id="sugestoes-body"></div>
+            <div class="blocked-mini" id="bloqueados-body"></div>
+          </article>
+        </section>
+
+        <section id="ranking" class="section">
+          <div class="section-head">
+            <h2>Ranking de programas</h2>
+            <span class="section-note">Redirects = orientação fora da base (sem %)</span>
+          </div>
+          <article class="card ranking" id="ranking-body"></article>
+          <div class="card detail-panel open" id="rank-detail"></div>
+        </section>
+
+        <section id="porque" class="section">
+          <div class="section-head">
+            <h2>Por que esta orientação (fora da base)?</h2>
+            <span class="section-note">Orientação fora da base — sem % de aderência (não é linha BNDES aprovada)</span>
+          </div>
+          <div id="porque-body" class="two-col"></div>
+        </section>
+
+        <section id="proximos" class="section">
+          <div class="section-head">
+            <h2>Próximos passos</h2>
+            <span class="section-note">Checklist sugerido</span>
+          </div>
+          <article class="card">
+            <div class="action-list">
+              <div class="action"><span class="check">1</span><div><strong>Não tratar como aprovação BNDES</strong><div class="muted">O anel “—” indica ausência de match indexado.</div></div><span class="deadline">Imediato</span></div>
+              <div class="action"><span class="check">2</span><div><strong>Consultar agente financeiro / portal BNDES</strong><div class="muted">Crédito Capex (ex.: energia) via repassador — fora do SADS.</div></div><span class="deadline">0–7 dias</span></div>
+              <div class="action"><span class="check">3</span><div><strong>Avaliar Sebraetec / fomento estadual</strong><div class="muted">Consultoria e linhas regionais conforme UF.</div></div><span class="deadline">0–14 dias</span></div>
+            </div>
+          </article>
+        </section>
+
+        <p class="footer-note">SADS · demo estática guardrail · score ≠ aprovação · corpus piloto FINEP/FAPESP · BNDES só orientação ampla (ADR-009/010)</p>
+      </main>
+    </div>
+  </div>
+
+  <script>
+(function () {
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+
+  const DEMO = {
+    diagnosis: {
+      has_technological_risk: false,
+      report_track: "modernization_credit",
+      report_track_label: "Modernização / Crédito",
+      report_track_hint:
+        "Sem match típico de subvenção P&D na base: o caminho tende a crédito/consultoria (orientação — não é aprovação BNDES).",
+      primary_path: "credito",
+      budget_math_inconsistency: false,
+      ineligible_budget_items: [],
+      alerts: [
+        "Perfil de modernização/aquisição (sem P&D evidenciado): subvenção econômica não é o caminho. Não encaminhar como subvenção P&D: avalie crédito/consultoria/incentivo (orientação fora dos programas indexados do SADS)."
+      ]
+    },
+    redirect_suggestions: [
+      {
+        name: "Sebraetec",
+        kind: "consultoria",
+        reason: "Consultoria e implantação tecnológica sem exigir P&D."
+      },
+      {
+        name: "BNDES — crédito e financiamento",
+        kind: "credito",
+        reason:
+          "Orientação fora da base indexada do SADS: caminho típico é crédito (consultar portal BNDES / agente financeiro). Não é match de linha específica nem aprovação de financiamento."
+      },
+      {
+        name: "Desenvolve SP (exemplo estadual)",
+        kind: "credito_estadual",
+        reason: "Crédito/fomento estadual — verificar elegibilidade no agente local."
+      }
+    ],
+    applications: [
+      {
+        id: "1",
+        rank_position: 1,
+        edict_external_id: "redirect-bndes-credito-e-financiamento",
+        edict_title: "BNDES — crédito e financiamento",
+        agency: "BNDES",
+        score: 74,
+        status: "recommended",
+        strengths: [
+          "Perfil Capex/modernização (placas prontas)",
+          "Consultar agente financeiro / portal oficial — o SADS não lista linha específica",
+          "Separar orientação de match indexado (FINEP/FAPESP)"
+        ],
+        weaknesses: ["Sem linha específica na base do SADS", "Não usar % interno como aprovação"],
+        summary:
+          "Orientação fora da base indexada do SADS: caminho típico é crédito (consultar portal BNDES / agente financeiro). Não é match de linha específica nem aprovação de financiamento.",
+        breakdown: { instrument: "credito", instrument_label: "crédito", why_this: "Orientação fora da base — modernização sem P&D." }
+      },
+      {
+        id: "2",
+        rank_position: 2,
+        edict_external_id: "redirect-sebraetec",
+        edict_title: "Sebraetec",
+        agency: "Sebrae",
+        score: 71,
+        status: "recommended",
+        strengths: ["Consultoria sem exigir P&D", "Apoio à implantação"],
+        weaknesses: ["Não é edital FINEP indexado"],
+        summary: "Orientação de consultoria (fora da base de editais do SADS).",
+        breakdown: { instrument: "parceria", instrument_label: "parceria / consultoria" }
+      }
+    ],
+    blocked_applications: [
+      {
+        edict_title: "FINEP — chamada ilustrativa de subvenção P&D",
+        edict_external_id: "finep-demo-blocked",
+        weaknesses: ["Bloqueado: Fit de instrumento 0% — projeto sem risco tecnológico / P&D"],
+        breakdown: { instrument: "subvencao", block_reasons: ["Fora da trilha de crédito — exige P&D"] }
+      }
+    ]
+  };
+
+  function isRedirect(app) {
+    return String(app?.edict_external_id || "").startsWith("redirect-");
+  }
+
+  const top = DEMO.applications[0];
+
+  document.getElementById("hero-rec").innerHTML = `
+    <div class="rank">ORIENTAÇÃO (FORA DA BASE INDEXADA)</div>
+    <h2 class="program-title">${esc(top.edict_title)}</h2>
+    <p class="muted">${esc(top.summary)}</p>
+    <div class="program-meta">
+      <span class="chip">Modernização / Crédito</span>
+      <span class="chip">sem % de aderência</span>
+      <span class="chip">Orientação (fora da base)</span>
+    </div>
+    <div class="reasons">
+      ${top.strengths.slice(0, 3).map((r) => `<div class="reason">${esc(r)}</div>`).join("")}
+    </div>`;
+
+  document.getElementById("hero-score").innerHTML = `
+    <div class="eyebrow">Match na base</div>
+    <div class="score-ring" style="background: conic-gradient(var(--primary) 0 0%, rgba(255,255,255,0.08) 0% 100%)">
+      <div class="score-number">—</div>
+    </div>
+    <div class="range mid">Sem programa indexado</div>
+    <small class="muted">Orientação de caminho — não use % como aprovação</small>`;
+
+  document.getElementById("kpi-row").innerHTML = `
+    <article class="card kpi"><div class="label">Trilha</div><div class="value" style="font-size:1rem">Modernização / Crédito</div><div class="sub">credito</div></article>
+    <article class="card kpi"><div class="label">No ranking</div><div class="value">2</div><div class="sub">1 fora da trilha / bloqueado(s)</div></article>
+    <article class="card kpi"><div class="label">Orçamento</div><div class="value" style="font-size:1rem">Capex solar</div><div class="sub">demo</div></article>
+    <article class="card kpi"><div class="label">Tipo (#1)</div><div class="value" style="font-size:1rem">Orientação</div><div class="sub">sem %</div></article>`;
+
+  document.getElementById("alert-banner").innerHTML = `
+    <div class="alert-banner-kicker">↗ Trilha: Modernização / Crédito</div>
+    <strong>Sem match de programa na base indexada do SADS</strong>
+    <p>Orientação: crédito, consultoria ou incentivo fiscal. BNDES aparece só como instituição ampla — não como linha/aprovação.</p>`;
+
+  document.getElementById("alertas-body").innerHTML = `
+    <div class="alert-item warn">
+      <div class="dot"></div>
+      <div><strong>Caminho: crédito / modernização (orientação)</strong>
+      <p>Não há enquadramento típico de subvenção P&amp;D nos programas indexados (FINEP/FAPESP…). O ranking pode sugerir crédito/consultoria como orientação — isso não é match de linha BNDES nem aprovação.</p></div>
+      <span class="tag">Encaminhamento</span>
+    </div>`;
+
+  document.getElementById("sugestoes-body").innerHTML =
+    `<div class="eyebrow" style="margin-bottom:6px">Orientações fora da base (sem % / sem aprovação)</div>` +
+    DEMO.redirect_suggestions
+      .map((r) => `<div class="suggest-chip"><strong>${esc(r.name)}</strong><span>${esc(r.reason)}</span></div>`)
+      .join("");
+
+  document.getElementById("bloqueados-body").innerHTML =
+    `<div class="eyebrow" style="margin-bottom:6px">Fora da trilha (exigem P&amp;D / subvenção)</div>` +
+    DEMO.blocked_applications
+      .map((b) => `<div class="row"><strong>${esc(b.edict_title)}</strong><span>Fora da trilha — exige P&amp;D</span></div>`)
+      .join("");
+
+  document.getElementById("ranking-body").innerHTML = DEMO.applications
+    .map((a) => {
+      const orient = isRedirect(a);
+      return `<div class="program-row">
+        <div class="medal">${esc(a.rank_position)}</div>
+        <div><strong>${esc(a.edict_title)}</strong>
+          <div class="muted">${orient ? "orientação (fora da base)" : esc(a.breakdown.instrument_label)}</div></div>
+        <div class="hide-tablet"><strong>—</strong><div class="muted">orçamento projeto</div></div>
+        <div class="hide-tablet"><span class="chance medium">${orient ? "Orientação (fora da base)" : "—"}</span></div>
+        <div class="fit">${orient ? "—" : Math.round(a.score) + "%"}</div>
+        <div class="arrow">›</div>
+      </div>`;
+    })
+    .join("");
+
+  document.getElementById("rank-detail").innerHTML = `
+    <div class="eyebrow">Orientação (fora da base)</div>
+    <h3 style="margin-top:6px">${esc(top.edict_title)}</h3>
+    <p class="muted">Orientação (fora da base) · sem % de aderência (não é edital indexado)</p>
+    <p>${esc(top.summary)}</p>
+    <p><strong>Pontos a favor:</strong> ${top.strengths.map(esc).join(" · ")}</p>
+    <p><strong>Atenções:</strong> ${top.weaknesses.map(esc).join(" · ")}</p>`;
+
+  document.getElementById("porque-body").innerHTML = `
+    <article class="card">
+      <p class="muted">Sem gráfico de aderência: isto é orientação fora dos programas indexados (não use % como aprovação BNDES/FINEP).</p>
+    </article>
+    <article class="card">
+      <h3>Por que esta orientação?</h3>
+      <p>Não há match com programa na base do SADS; o caminho tende a crédito/consultoria/incentivo fiscal.</p>
+      <p class="muted" style="margin-top:12px">${esc(DEMO.diagnosis.report_track_hint)}</p>
+      <h3 style="margin-top:20px">Alternativa na mesma trilha</h3>
+      <p class="muted">Também há orientação: Sebraetec (fora da base — sem %).</p>
+    </article>`;
+})();
+  </script>
+</body>
+</html>

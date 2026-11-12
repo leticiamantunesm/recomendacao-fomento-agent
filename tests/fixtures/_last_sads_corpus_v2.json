@@ -1,0 +1,189 @@
+[
+  {
+    "key": "BAD_01",
+    "alias": "Clínica AI",
+    "file": "BAD_01_CLINICA_AI.pdf",
+    "expect": "fail_quality",
+    "ok": true,
+    "obtained": "items=1 budget=4200000.0",
+    "tech_risk": false,
+    "n_recommended": 0,
+    "n_blocked": 3,
+    "top": null,
+    "forbidden": [],
+    "budget_math": false,
+    "redirect": [
+      "Sebraetec",
+      "BNDES — crédito e financiamento (orientação)",
+      "FINEP Inovacred (se houver inovação de processo)"
+    ]
+  },
+  {
+    "key": "BAD_02",
+    "alias": "Solar Bairro",
+    "file": "BAD_02_SOLAR_BAIRRO.pdf",
+    "expect": "block_no_tech_risk",
+    "ok": true,
+    "obtained": "tech=False rec=0",
+    "tech_risk": false,
+    "n_recommended": 0,
+    "n_blocked": 6,
+    "top": null,
+    "forbidden": [],
+    "budget_math": true,
+    "redirect": [
+      "Sebraetec",
+      "BNDES — crédito e financiamento (orientação)",
+      "FINEP Inovacred (se houver inovação de processo)"
+    ]
+  },
+  {
+    "key": "BAD_03",
+    "alias": "Recicla Plus",
+    "file": "BAD_03_RECICLA_PLUS.pdf",
+    "expect": "alert_marketing",
+    "ok": true,
+    "obtained": "['marketing comercial / ads']",
+    "tech_risk": false,
+    "n_recommended": 0,
+    "n_blocked": 3,
+    "top": null,
+    "forbidden": [
+      "marketing comercial / ads"
+    ],
+    "budget_math": false,
+    "redirect": [
+      "Sebraetec",
+      "BNDES — crédito e financiamento (orientação)",
+      "FINEP Inovacred (se houver inovação de processo)"
+    ]
+  },
+  {
+    "key": "BAD_04",
+    "alias": "Sensor Campo",
+    "file": "BAD_04_SENSOR_CAMPO.pdf",
+    "expect": "alert_budget_math",
+    "ok": true,
+    "obtained": "math=True sum=11600000.0 decl=3750000.0",
+    "tech_risk": false,
+    "n_recommended": 0,
+    "n_blocked": 6,
+    "top": null,
+    "forbidden": [],
+    "budget_math": true,
+    "redirect": [
+      "Sebraetec",
+      "BNDES — crédito e financiamento (orientação)",
+      "FINEP Inovacred (se houver inovação de processo)"
+    ]
+  },
+  {
+    "key": "BAD_05",
+    "alias": "Capacita Futuro",
+    "file": "BAD_05_CAPACITA_FUTURO.pdf",
+    "expect": "block_no_tech_risk",
+    "ok": true,
+    "obtained": "tech=False rec=0",
+    "tech_risk": false,
+    "n_recommended": 0,
+    "n_blocked": 3,
+    "top": null,
+    "forbidden": [],
+    "budget_math": false,
+    "redirect": [
+      "Sebraetec",
+      "BNDES — crédito e financiamento (orientação)",
+      "FINEP Inovacred (se houver inovação de processo)"
+    ]
+  },
+  {
+    "key": "BAD_06",
+    "alias": "Bateria Verde",
+    "file": "BAD_06_BATERIA_VERDE.pdf",
+    "expect": "alert_budget_math",
+    "ok": true,
+    "obtained": "math=True sum=27500000.0 decl=9000000.0",
+    "tech_risk": true,
+    "n_recommended": 0,
+    "n_blocked": 3,
+    "top": null,
+    "forbidden": [],
+    "budget_math": true,
+    "redirect": []
+  },
+  {
+    "key": "GOOD_02",
+    "alias": "Rede Fria Circular",
+    "file": "02_REDE_FRIA_CIRCULAR.pdf",
+    "expect": "pass_rd",
+    "ok": true,
+    "obtained": "tech=True ideal=87.4",
+    "tech_risk": true,
+    "n_recommended": 1,
+    "n_blocked": 2,
+    "top": "FINEP Mais Inovação — Eficiência Energética Industrial",
+    "forbidden": [],
+    "budget_math": false,
+    "redirect": []
+  },
+  {
+    "key": "GOOD_03",
+    "alias": "Ponte Leitora",
+    "file": "03_PONTE_LEITORA.pdf",
+    "expect": "pass_rd",
+    "ok": true,
+    "obtained": "tech=True ideal=88.0",
+    "tech_risk": true,
+    "n_recommended": 2,
+    "n_blocked": 1,
+    "top": "FINEP / CNPq — Tecnologias Assistivas e Educação",
+    "forbidden": [],
+    "budget_math": false,
+    "redirect": []
+  },
+  {
+    "key": "GOOD_04",
+    "alias": "Aqua Sentinela",
+    "file": "04_AQUA_SENTINELA.pdf",
+    "expect": "pass_rd",
+    "ok": true,
+    "obtained": "tech=True ideal=87.4",
+    "tech_risk": true,
+    "n_recommended": 2,
+    "n_blocked": 1,
+    "top": "FINEP Saneamento / Recursos Hídricos",
+    "forbidden": [],
+    "budget_math": false,
+    "redirect": []
+  },
+  {
+    "key": "GOOD_05",
+    "alias": "Rota Segura",
+    "file": "05_ROTA_SEGURA.pdf",
+    "expect": "pass_rd",
+    "ok": true,
+    "obtained": "tech=True ideal=88.0",
+    "tech_risk": true,
+    "n_recommended": 2,
+    "n_blocked": 1,
+    "top": "FINEP Mobilidade e Cidades Inteligentes",
+    "forbidden": [],
+    "budget_math": false,
+    "redirect": []
+  },
+  {
+    "key": "GOOD_06",
+    "alias": "Biofilme PAC",
+    "file": "06_BIOFILME_PAC.pdf",
+    "expect": "pass_rd",
+    "ok": true,
+    "obtained": "tech=True ideal=86.8",
+    "tech_risk": true,
+    "n_recommended": 2,
+    "n_blocked": 1,
+    "top": "FINEP Bioeconomia / Materiais Avançados",
+    "forbidden": [],
+    "budget_math": false,
+    "redirect": []
+  }
+]

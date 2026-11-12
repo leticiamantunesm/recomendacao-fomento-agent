@@ -1,5 +1,7 @@
 """Testes unitarios da fonte FINEP (sem rede)."""
 
+from datetime import datetime, timezone
+
 from agents.sources.finep import (
     _classify_role,
     _is_open,
@@ -8,6 +10,10 @@ from agents.sources.finep import (
     _pick_pdf,
     _slug_filename,
     _theme_names,
+    is_item_vigente,
+    is_metadata_vigente,
+    is_vigente,
+    parse_finep_datetime,
 )
 
 
@@ -23,6 +29,48 @@ def test_matches_situacao() -> None:
     assert _matches_situacao(aberta, "todas")
     assert _matches_situacao(encerrada, "encerrada")
     assert not _matches_situacao(encerrada, "aberta")
+
+
+def test_vigente_rejects_expired_prazo_even_if_aberta() -> None:
+    now = datetime(2026, 11, 9, 12, 0, tzinfo=timezone.utc)
+    item = {
+        "situacao": {"name": "Aberta"},
+        "vigenciaInicio": "2026-08-01T00:00:00.000Z",
+        "vigenciaFim": "2027-02-01T00:00:00.000Z",
+        "prazoProposto": "2026-09-09T13:00:00.000Z",  # vencido
+    }
+    assert _matches_situacao(item, "aberta")
+    assert not _matches_situacao(item, "vigente")
+    assert not is_item_vigente(item, now=now)
+
+
+def test_vigente_accepts_open_window() -> None:
+    now = datetime(2026, 11, 9, 12, 0, tzinfo=timezone.utc)
+    item = {
+        "situacao": {"name": "Aberta"},
+        "vigenciaInicio": "2026-10-21T00:00:00.000Z",
+        "vigenciaFim": "2027-01-29T00:00:00.000Z",
+        "prazoProposto": "2026-11-23T17:00:00.000Z",
+    }
+    assert is_item_vigente(item, now=now)
+    assert _matches_situacao(item, "vigente")
+
+
+def test_metadata_vigente_and_parse() -> None:
+    now = datetime(2026, 11, 9, tzinfo=timezone.utc)
+    assert parse_finep_datetime("2026-11-23T17:00:00.000Z") is not None
+    assert is_vigente(
+        situacao="Aberta",
+        prazo_proposta="2026-11-23T17:00:00.000Z",
+        now=now,
+    )
+    assert not is_metadata_vigente(
+        {
+            "situacao": "Encerrada",
+            "prazo_proposta": "2027-01-01T00:00:00.000Z",
+        },
+        now=now,
+    )
 
 
 def test_pick_pdf_prefers_edital() -> None:

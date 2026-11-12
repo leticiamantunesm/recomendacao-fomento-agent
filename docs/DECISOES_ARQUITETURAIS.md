@@ -98,3 +98,28 @@ Não inventar decisões sem evidência.
 | **Decisão** | `EMBEDDING_BACKEND=auto|hashing`. |
 | **Justificativa** | Demo e CI resilientes. |
 | **Consequências** | Qualidade semântica menor no modo hashing. |
+
+---
+
+## ADR-010 — Criptografia at-rest de dossiês (HMAC-SHA256 CTR + tag)
+
+| | |
+|--|--|
+| **Contexto** | PDFs/`raw_text`/`form_data` ficavam em claro no disco e no Neon; dump do banco lia o projeto. |
+| **Alternativas** | (a) sem cifrar; (b) AES-GCM via pacote `cryptography` (instalação falhou/travou no ambiente); (c) cifra autenticada só com stdlib. |
+| **Decisão** | **(c)** — keystream HMAC-SHA256 + tag HMAC; `PROJECT_DATA_ENCRYPTION_KEY`; sem chave = pass-through (legado). Decifrar só no servidor. |
+| **Justificativa** | Reduz exposição em dump/backup sem dependência nativa externa; não é E2E (servidor precisa do claro para scoring). |
+| **Consequências** | Sem a chave, uploads cifrados não abrem; corpus de editais permanece em claro; não substitui authz de API. |
+
+---
+
+## ADR-009 — BNDES como opção ampla (sem programas específicos); API Loja não autorizada
+
+| | |
+|--|--|
+| **Contexto** | Tentou-se integrar as APIs oficiais Developers@BNDES (Portfólio / Opções de financiamento) e o Navegador com linhas/programas (Finame, Cartão, Mais Inovação etc.). A **autorização na Loja de APIs não foi obtida** no prazo do TCC; o portal de guias permanece restrito sem login/aprovação. |
+| **Alternativas** | (a) Manter scrape de dezenas de produtos BNDES; (b) inventar contrato OAuth; (c) tratar BNDES só como instituição de crédito genérica. |
+| **Decisão** | **(c)** — o SADS menciona o BNDES de forma ampla (crédito/financiamento + link ao portal). **Não** recomenda linhas/programas específicos. O client em `app/integrations/bndes/` permanece como artefato da tentativa (testes unitários + docs de lacuna), **fora do motor de recomendação**. |
+| **Justificativa** | Honestidade metodológica no TCC: integração oficial testada e **bloqueada por autorização**; evitar falso detalhamento de produtos sem contrato validado. |
+| **Consequências** | Usuário entende que crédito BNDES é caminho possível, mas deve consultar o Navegador oficial. Multi-fonte BNDES no coletor reduz-se a 1 entrada institucional (`bndes-credito-institucional`). |
+| **Evidências** | `docs/integrations/BNDES_API_*.md`; `agents/sources/bndes.py`; guia restrito https://portal.apis.bndes.gov.br/ |

@@ -7,12 +7,17 @@ API publica Liferay Objects:
 Pagina humana relacionada:
   https://www.finep.gov.br/oportunidades
   https://www.finep.gov.br/chamadas-publicas
+
+Filtro padrao ``vigente``: situacao Aberta **e** janela temporal valida
+(``prazoProposto`` / ``vigenciaInicio`` / ``vigenciaFim``). A API ainda lista
+como Aberta chamadas com prazo de proposta ja vencido — essas sao excluidas.
 """
 
 from __future__ import annotations
 
 import re
 from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 from urllib.parse import urljoin
@@ -23,7 +28,7 @@ FINEP_BASE = "https://www.finep.gov.br"
 LIST_PATH = "/o/c/chamadapublicas"
 USER_AGENT = "recomendacao-fomento-agent/0.2 (+TCC; coletor educacional)"
 
-SituacaoFilter = Literal["aberta", "todas", "encerrada"]
+SituacaoFilter = Literal["vigente", "aberta", "todas", "encerrada"]
 
 ROLE_PRIORITY = {
     "edital": 100,
@@ -75,9 +80,19 @@ class FinepCall:
             reverse=True,
         )[0]
 
+    def is_vigente(self, *, now: datetime | None = None) -> bool:
+        return is_vigente(
+            situacao=self.situacao,
+            vigencia_inicio=self.vigencia_inicio,
+            vigencia_fim=self.vigencia_fim,
+            prazo_proposta=self.prazo_proposta,
+            now=now,
+        )
+
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
         d.pop("raw", None)
+        d["em_vigencia"] = self.is_vigente()
         return d
 
 
@@ -118,11 +133,94 @@ def _slug_filename(name: str, chamada_id: int, *, role: str = "") -> str:
 
 def _situacao_name(item: dict[str, Any]) -> str:
     situacao = item.get("situacao") or {}
-    return str(situacao.get("name") or situacao.get("key") or "")
+    if isinstance(situacao, dict):
+        return str(situacao.get("name") or situacao.get("key") or "")
+    if isinstance(situacao, str):
+        return situacao
+    return ""
+
+
+def parse_finep_datetime(raw: str | None) -> datetime | None:
+    """Parse datas ISO da API FINEP (ex.: 2026-11-23T17:00:00.000Z)."""
+    if not raw or not str(raw).strip():
+        return None
+    text = str(raw).strip()
+    try:
+        if text.endswith("Z"):
+            dt = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        else:
+            dt = datetime.fromisoformat(text)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except ValueError:
+        return None
 
 
 def _is_open(item: dict[str, Any]) -> bool:
     return _situacao_name(item).lower().startswith("abert")
+
+
+def is_vigente(
+    *,
+    situacao: str | None,
+    vigencia_inicio: str | None = None,
+    vigencia_fim: str | None = None,
+    prazo_proposta: str | None = None,
+    now: datetime | None = None,
+) -> bool:
+    """True se a chamada ainda aceita proposta / está em vigência.
+
+    A API FINEP marca algumas chamadas como \"Aberta\" mesmo com prazoProposto
+    já vencido. Aqui exigimos:
+      - situacao Aberta (ou ausente, para metadados incompletos)
+      - agora >= vigenciaInicio (se houver)
+      - agora <= vigenciaFim (se houver)
+      - agora <= prazoProposto (se houver)
+    """
+    ref = now or datetime.now(timezone.utc)
+    name = (situacao or "").strip().lower()
+    if name and not name.startswith("abert"):
+        # Encerrada / Finalizada / etc.
+        if "encerr" in name or "finaliz" in name or "cancel" in name:
+            return False
+        if name not in {"?", "desconhecido", "unknown"}:
+            return False
+
+    start = parse_finep_datetime(vigencia_inicio)
+    end = parse_finep_datetime(vigencia_fim)
+    prazo = parse_finep_datetime(prazo_proposta)
+
+    if start and ref < start:
+        return False
+    if end and ref > end:
+        return False
+    if prazo and ref > prazo:
+        return False
+    return True
+
+
+def is_item_vigente(item: dict[str, Any], *, now: datetime | None = None) -> bool:
+    """Avalia item cru da API Liferay Objects."""
+    return is_vigente(
+        situacao=_situacao_name(item),
+        vigencia_inicio=item.get("vigenciaInicio"),
+        vigencia_fim=item.get("vigenciaFim"),
+        prazo_proposta=item.get("prazoProposto"),
+        now=now,
+    )
+
+
+def is_metadata_vigente(meta: dict[str, Any] | None, *, now: datetime | None = None) -> bool:
+    """Avalia metadata persistida em edicts.metadata (seed/scraper)."""
+    meta = meta or {}
+    return is_vigente(
+        situacao=str(meta.get("situacao") or "") or None,
+        vigencia_inicio=meta.get("vigencia_inicio"),
+        vigencia_fim=meta.get("vigencia_fim"),
+        prazo_proposta=meta.get("prazo_proposta"),
+        now=now,
+    )
 
 
 def _matches_situacao(item: dict[str, Any], filt: SituacaoFilter) -> bool:
@@ -130,7 +228,10 @@ def _matches_situacao(item: dict[str, Any], filt: SituacaoFilter) -> bool:
     if filt == "todas":
         return True
     if filt == "aberta":
+        # Apenas rótulo da API (pode incluir prazo já vencido).
         return name.startswith("abert")
+    if filt == "vigente":
+        return is_item_vigente(item)
     if filt == "encerrada":
         return "encerr" in name or "finaliz" in name
     return True
@@ -302,10 +403,15 @@ class FinepSource:
     def list_calls(
         self,
         *,
-        situacao: SituacaoFilter = "aberta",
+        situacao: SituacaoFilter = "vigente",
         page_size: int = 50,
         max_pages: int = 200,
     ) -> list[dict[str, Any]]:
+        """Lista chamadas da API publica.
+
+        Padrao ``vigente``: situacao Aberta **e** prazo/janela de vigencia ainda validos.
+        Use ``aberta`` apenas se quiser o rotulo bruto da FINEP (inclui prazo vencido).
+        """
         items_out: list[dict[str, Any]] = []
         for page in range(1, max_pages + 1):
             r = self.client.get(
@@ -328,7 +434,8 @@ class FinepSource:
         return items_out
 
     def list_open_calls(self, *, page_size: int = 50, max_pages: int = 200) -> list[dict[str, Any]]:
-        return self.list_calls(situacao="aberta", page_size=page_size, max_pages=max_pages)
+        """Alias historico: agora equivale a vigentes (nao so rotulo Aberta)."""
+        return self.list_calls(situacao="vigente", page_size=page_size, max_pages=max_pages)
 
     def fetch_detail(self, chamada_id: int) -> dict[str, Any]:
         r = self.client.get(
@@ -348,7 +455,7 @@ class FinepSource:
         self,
         *,
         limit: int | None = None,
-        situacao: SituacaoFilter = "aberta",
+        situacao: SituacaoFilter = "vigente",
         require_pdf: bool = True,
     ) -> list[FinepCall]:
         """Coleta chamadas. limit=None significa todas as que passarem no filtro."""
@@ -364,6 +471,9 @@ class FinepSource:
             if not isinstance(docs, list):
                 docs = []
             call = _build_call(merged, docs)
+            # Revalida no detalhe (datas podem estar só no nested payload).
+            if situacao == "vigente" and not call.is_vigente():
+                continue
             if require_pdf and not call.attachments:
                 continue
             results.append(call)
@@ -372,7 +482,7 @@ class FinepSource:
     def collect_pdf_targets(self, *, limit: int | None = None) -> list[FinepDocument]:
         """Retrocompat: um FinepDocument por chamada (PDF primario)."""
         out: list[FinepDocument] = []
-        for call in self.collect_calls(limit=limit, situacao="aberta"):
+        for call in self.collect_calls(limit=limit, situacao="vigente"):
             primary = call.primary
             if not primary:
                 continue

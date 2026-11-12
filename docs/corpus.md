@@ -1,10 +1,15 @@
-# Corpus e Agente Coletor (FINEP ampliado)
+# Corpus e Agente Coletor (FINEP + FAPESP + Embrapii + BNDES)
 
 ## Objetivo
 
-Buscar chamadas na **FINEP**, baixar **edital + anexos**, guardar **metadados ricos** e alimentar o Neon para a UI ranquear só corpus **FINEP fresco**.
+Buscar chamadas na **FINEP** (API + PDFs) e, em paralelo, na **FAPESP**, **Embrapii** e **BNDES** (detalhe + anexos), guardar metadados e alimentar o Neon para a UI.
 
-Portal humano: [Oportunidades Finep](https://www.finep.gov.br/oportunidades) · chamadas publicas.
+Piloto validado do TCC continua sendo **FINEP**; FAPESP, Embrapii e BNDES estão em **paridade parcial**.
+
+Portal humano FINEP: [Oportunidades Finep](https://www.finep.gov.br/oportunidades) · chamadas publicas.  
+Portal FAPESP: [Chamadas de Propostas](https://fapesp.br/chamadas/).  
+Portal Embrapii: [Transparência — Chamadas Públicas](https://embrapii.org.br/transparencia/#chamadas).  
+Portal BNDES: [Navegador de Financiamentos](https://www.bndes.gov.br/wps/portal/site/home/financiamento/navegador/#!/).
 
 API usada:
 
@@ -39,10 +44,22 @@ $env:EMBEDDING_BACKEND="hashing"
 
 Isso faz: coleta (+anexos) → extract → `seed --agency FINEP --purge-other` → `index --reindex`.
 
+### FINEP + FAPESP + Embrapii + BNDES (sem apagar outras agências)
+
+```powershell
+$env:EMBEDDING_BACKEND="hashing"
+.\.venv\Scripts\python.exe -m scripts.refresh_finep_corpus --source finep,fapesp,embrapii,bndes --limit 10
+```
+
+Com mais de uma fonte, o seed **não** usa `--purge-other` (preserva o que já está no Neon).
+
 ### So coleta
 
 ```powershell
 .\.venv\Scripts\python.exe -m scripts.collect_editais --source finep --limit 20 --situacao aberta --extract
+.\.venv\Scripts\python.exe -m scripts.collect_editais --source fapesp --limit 10 --extract
+.\.venv\Scripts\python.exe -m scripts.collect_editais --source embrapii --limit 10 --extract
+.\.venv\Scripts\python.exe -m scripts.collect_editais --source bndes --limit 10 --extract
 ```
 
 | Flag | Efeito |
@@ -64,6 +81,9 @@ O seed junta: descricao da API + texto do edital + anexos no `edicts.raw_text`, 
 ## Codigo
 
 - `agents/sources/finep.py` — cliente ampliado
+- `agents/sources/fapesp.py` — listagem + detalhe (meta-refresh) + anexos
+- `agents/sources/embrapii.py` — transparência `#chamadas` + detalhe + PDFs (GCS/wp-content)
+- `agents/sources/bndes.py` — API `/apoioFinanceiro/rest/linhasProgramas` + detalhe produto + PDFs
 - `agents/scraper_agent.py` — orquestracao + manifest
 - `scripts/collect_editais.py` — CLI coleta
 - `scripts/refresh_finep_corpus.py` — E2E refresh
@@ -73,5 +93,8 @@ O seed junta: descricao da API + texto do edital + anexos no `edicts.raw_text`, 
 
 - Layout/API FINEP pode mudar
 - Nem toda oportunidade do hub `/oportunidades` e chamada publica com PDF
-- Rede corporativa precisa liberar `finep.gov.br`
+- FAPESP: anexos frequentemente DOCX (baixados; texto principal vem do HTML da chamada); PDFs externos variam
+- Embrapii: listagem em [transparencia/#chamadas](https://embrapii.org.br/transparencia/#chamadas); PDFs em `storage.googleapis.com` / `wp-content`; areas de atuacao entram como fluxo continuo
+- BNDES: Navegador é SPA; coleta via API REST + páginas de produto; filtro default `innovation_only` (~linhas de inovação); fallback curado se API cair
+- Rede corporativa precisa liberar `finep.gov.br`, `fapesp.br`, `embrapii.org.br` e `bndes.gov.br`
 - Boletim/e-book manuais saem do manifest no refresh FINEP-only (podem voltar com `--no-finep-only-manifest` se necessario)

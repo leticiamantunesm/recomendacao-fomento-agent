@@ -16,6 +16,9 @@ Gerado em 2026-09-30. Classificações alinhadas ao código inspecionado.
 | Extração texto PDF | PARCIALMENTE IMPLEMENTADO | `extract_pdfs`, `pdf_form` | OCR | Alta |
 | Formulário projeto | IMPLEMENTADO | `project-new.html` PATCH | — | — |
 | Coleta FINEP | IMPLEMENTADO (piloto) | `scraper_agent`, `finep.py` | Robustez prod | Alta |
+| Coleta FAPESP | PARCIALMENTE IMPLEMENTADO | `fapesp.py` (detalhe HTML + anexos) | Paridade PDF/validação Hit@k | Alta |
+| Coleta Embrapii | PARCIALMENTE IMPLEMENTADO | `embrapii.py` (transparência #chamadas + PDFs) | Validação Hit@k; áreas contínuas | Alta |
+| Coleta BNDES | PARCIALMENTE IMPLEMENTADO | `bndes.py` (API Navegador + detalhe produto + PDFs) | Validação Hit@k; catálogo completo opcional | Alta |
 | Seed / purge FINEP | IMPLEMENTADO | `seed_corpus.py` | — | — |
 | Embeddings edicts | IMPLEMENTADO | `indexer_agent`, pgvector | HF vs hashing | Média |
 | Retrieval híbrido | IMPLEMENTADO | `retrieval_agent.py` | — | — |
@@ -30,7 +33,7 @@ Gerado em 2026-09-30. Classificações alinhadas ao código inspecionado.
 | Chat LLM | PLANEJADO | `product_ui.md` Fase B | Desenho seguro | Alta (TCC) |
 | SSO / OAuth | PLANEJADO | README Fase B | — | Alta |
 | Authz em todas rotas projeto | PARCIALMENTE IMPLEMENTADO | só auth router usa Depends | Hardening | **Crítica** |
-| Multi-fonte editais | PLANEJADO | README OUT | FAPESP/BNDES… | Alta |
+| Multi-fonte editais | PARCIALMENTE IMPLEMENTADO | FAPESP + Embrapii + BNDES enriquecidas; piloto = FINEP | CNPq/Centelha rasas; validação | Alta |
 | AHP | PLANEJADO | proposta TCC/slides | — | Média |
 | TOPSIS | PLANEJADO | proposta | — | Média |
 | LangChain/CrewAI | NÃO IDENTIFICADO no runtime | README “opcional” | Não depende | — |

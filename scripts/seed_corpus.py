@@ -16,6 +16,8 @@ from pathlib import Path
 
 from sqlalchemy import delete, select, text
 
+from agents.instruments import enrich_edict_metadata
+from agents.sources.finep import is_metadata_vigente
 from app.config import ROOT_DIR, get_settings
 from db.models import Company, Edict
 from db.session import dispose_engine, session_scope
@@ -23,6 +25,7 @@ from scripts.extract_pdfs import slugify
 
 MANIFEST = ROOT_DIR / "data" / "corpus_manifest.csv"
 META_DIR = ROOT_DIR / "data" / "outputs" / "finep_metadata"
+CALLS_META_DIR = ROOT_DIR / "data" / "outputs" / "calls_metadata"
 
 
 def _split_areas(raw: str | None) -> list[str]:
@@ -50,7 +53,11 @@ def _find_text_for_pdf(texts_dir: Path, pdf_filename: str) -> Path | None:
     return None
 
 
-def _load_finep_meta(external_id: str) -> dict | None:
+def _load_call_meta(external_id: str) -> dict | None:
+    """Carrega metadata unificada (multi-fonte) ou legado FINEP."""
+    unified = CALLS_META_DIR / f"{external_id}.json"
+    if unified.exists():
+        return json.loads(unified.read_text(encoding="utf-8"))
     m = re.match(r"finep-(\d+)$", external_id)
     if not m:
         return None
@@ -67,12 +74,13 @@ def _compose_raw_text(
     attachments: str,
     finep_meta: dict | None,
 ) -> tuple[str | None, list[str]]:
-    """Junta descricao da API + PDF primario + anexos extraidos."""
+    """Junta descricao da API/portal + PDF primario + anexos extraidos."""
     parts: list[str] = []
     used: list[str] = []
 
     if finep_meta and finep_meta.get("description_text"):
-        parts.append("# Descricao oficial (FINEP)\n" + str(finep_meta["description_text"]))
+        src = str(finep_meta.get("source") or "portal")
+        parts.append(f"# Descricao oficial ({src})\n" + str(finep_meta["description_text"]))
         used.append("api:descricao")
 
     files: list[str] = []
@@ -153,7 +161,7 @@ async def seed(*, agency: str | None, purge_other: bool) -> None:
                 continue
             keep_ids.add(external_id)
 
-            finep_meta = _load_finep_meta(external_id)
+            finep_meta = _load_call_meta(external_id)
             raw_text, text_sources = _compose_raw_text(
                 texts_dir=texts_dir,
                 filename=filename,
@@ -195,7 +203,16 @@ async def seed(*, agency: str | None, purge_other: bool) -> None:
                 "finep_meta_file": f"data/outputs/finep_metadata/{external_id.split('-')[-1]}.json"
                 if external_id.startswith("finep-")
                 else None,
+                "call_meta_file": f"data/outputs/calls_metadata/{external_id}.json",
             }
+            metadata["em_vigencia"] = bool(
+                (finep_meta or {}).get("em_vigencia")
+                if (finep_meta or {}).get("em_vigencia") is not None
+                else is_metadata_vigente(metadata)
+            )
+            if finep_meta and finep_meta.get("instrument"):
+                metadata["instrument"] = finep_meta.get("instrument")
+            metadata = enrich_edict_metadata(metadata, agency=agency_val or source, title=title)
 
             edict = await session.scalar(select(Edict).where(Edict.external_id == external_id))
             if edict is None:

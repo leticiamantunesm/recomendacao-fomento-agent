@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SADS — Relatório de recomendação</title>
-  <link rel="stylesheet" href="/static/report.css?v=auth4" />
+  <link rel="stylesheet" href="/static/report.css?v=track1" />
   <link rel="icon" href="/static/assets/sads-logo.png?v=auth4" />
 </head>
 <body class="report-body">
@@ -32,11 +32,10 @@
         </div>
         <nav class="side-nav">
           <a href="#resumo" class="active">Resumo <span>01</span></a>
-          <a href="#diagnostico">Diagnóstico <span>02</span></a>
+          <a href="#alertas">Alertas <span>02</span></a>
           <a href="#ranking">Ranking <span>03</span></a>
-          <a href="#criterios">Critérios <span>04</span></a>
-          <a href="#lacunas">Lacunas <span>05</span></a>
-          <a href="#plano">Plano de ação <span>06</span></a>
+          <a href="#porque">Por que #1 <span>04</span></a>
+          <a href="#proximos">Próximos passos <span>05</span></a>
         </nav>
       </aside>
 
@@ -48,6 +47,8 @@
             <div class="eyebrow">Relatório de recomendação de fomento</div>
             <h1 id="page-title">Projeto</h1>
             <div class="muted" id="page-subtitle">Aguardando avaliação</div>
+            <div id="track-badge" class="track-badge unclear" hidden></div>
+            <p id="track-hint" class="track-hint" hidden></p>
           </div>
           <div class="status" id="page-status">Preparando análise</div>
         </div>
@@ -56,32 +57,37 @@
           <article class="card recommendation" id="hero-rec">
             <div class="rank">#1 MELHOR RECOMENDAÇÃO</div>
             <h2 class="program-title">Aguardando ranking…</h2>
-            <p class="muted">O scoring está cruzando o projeto com o corpus FINEP.</p>
+            <p class="muted">Cruzando o projeto com os mecanismos disponíveis.</p>
           </article>
           <article class="card score-card" id="hero-score">
-            <div class="eyebrow">Compatibilidade geral</div>
+            <div class="eyebrow">Aderência</div>
             <div class="score-ring" style="background: conic-gradient(var(--primary) 0 0%, rgba(255,255,255,0.08) 0% 100%)">
               <div class="score-number">—</div>
             </div>
             <div class="range mid">—</div>
-            <small class="muted">Matriz v2 (6 critérios)</small>
+            <small class="muted">Compatibilidade com a opção #1</small>
           </article>
         </section>
 
         <section class="section kpis" id="kpi-row"></section>
 
-        <section id="diagnostico" class="section">
+        <section id="alertas" class="section">
           <div class="section-head">
-            <h2>Diagnóstico do projeto</h2>
-            <span class="section-note">Como a aplicação interpretou a proposta</span>
+            <h2>Alertas e avisos</h2>
+            <span class="section-note">Leia antes de qualquer encaminhamento</span>
           </div>
-          <div class="two-col" id="diagnostico-body"></div>
+          <div id="alert-banner" class="alert-banner" hidden></div>
+          <article class="card alert-panel">
+            <div class="alert-list" id="alertas-body"></div>
+            <div class="suggest-row" id="sugestoes-body" hidden></div>
+            <div class="blocked-mini" id="bloqueados-body" hidden></div>
+          </article>
         </section>
 
         <section id="ranking" class="section">
           <div class="section-head">
             <h2>Ranking de programas</h2>
-            <span class="section-note">Clique em uma opção para ver critérios e resumo</span>
+            <span class="section-note">Clique em uma opção para ver o detalhe</span>
           </div>
           <article class="card ranking" id="ranking-body">
             <p class="muted">Aguardando recomendações…</p>
@@ -89,33 +95,25 @@
           <div class="card detail-panel" id="rank-detail"></div>
         </section>
 
-        <section id="criterios" class="section">
+        <section id="porque" class="section">
           <div class="section-head">
-            <h2>Aderência da melhor recomendação</h2>
-            <span class="section-note">Score explicável por critério (matriz v2)</span>
+            <h2 id="porque-title">Por que esta é a melhor opção?</h2>
+            <span class="section-note" id="porque-note">Critérios da recomendação #1 na trilha do projeto</span>
           </div>
-          <div class="two-col" id="criterios-body"></div>
+          <div class="two-col" id="porque-body"></div>
         </section>
 
-        <section id="lacunas" class="section">
+        <section id="proximos" class="section">
           <div class="section-head">
-            <h2>Lacunas antes da submissão</h2>
-            <span class="section-note">Priorizadas a partir das fraquezas do scoring</span>
+            <h2>Próximos passos</h2>
+            <span class="section-note">Checklist antes de encaminhar</span>
           </div>
-          <article class="card gap-list" id="lacunas-body"></article>
-        </section>
-
-        <section id="plano" class="section">
-          <div class="section-head">
-            <h2>Plano de ação recomendado</h2>
-            <span class="section-note">Sequência sugerida para aumentar a competitividade</span>
-          </div>
-          <div class="two-col" id="plano-body"></div>
+          <div class="two-col" id="proximos-body"></div>
         </section>
 
         <div class="footer-note">
-          Relatório gerado pelo SADS a partir do corpus FINEP indexado. Scores são heurísticos
-          (matriz v2) e não substituem banca oficial nem leitura integral do edital.
+          Relatório gerado pelo SADS. É uma recomendação de direcionamento interno —
+          confirme prazo, anexos e regras no site oficial da chamada.
         </div>
       </main>
     </div>
@@ -147,7 +145,7 @@
     function levelOf(score) {
       const n = Number(score);
       if (!Number.isFinite(n)) return { key: "mid", label: "—", chance: "—", cls: "medium" };
-      if (n >= 75) return { key: "high", label: "Alta aderência", chance: "Chance alta", cls: "high" };
+      if (n >= 75) return { key: "high", label: "Alta aderência", chance: "Boa chance", cls: "high" };
       if (n >= 50) return { key: "mid", label: "Aderência média", chance: "Chance média", cls: "medium" };
       return { key: "low", label: "Aderência baixa", chance: "Chance baixa", cls: "low" };
     }
@@ -176,9 +174,40 @@
       if (!app) return "";
       const fromApi = String(app.url || app.breakdown?.edict_url || app.breakdown?.url || "").trim();
       if (fromApi) return fromApi;
-      const id = String(app.edict_external_id || "");
-      const m = id.match(/^finep-(\d+)$/i);
+      const eid = String(app.edict_external_id || "");
+      const m = eid.match(/^finep-(\d+)$/i);
       return m ? `https://www.finep.gov.br/e/chamada-publica/222684/${m[1]}` : "";
+    }
+
+    function instrumentLabel(app) {
+      return app?.breakdown?.instrument_label || app?.breakdown?.instrument || "";
+    }
+
+    function whyText(app) {
+      return app?.breakdown?.why_this || app?.summary || "";
+    }
+
+    /** Gate 0 / BNDES (ADR-009): orientação fora da base — nunca % como “linha aprovada”. */
+    function isRedirectOrientation(app) {
+      const id = String(app?.edict_external_id || "").toLowerCase();
+      if (id.startsWith("redirect-")) return true;
+      if (id === "bndes-credito-institucional") return true;
+      // Legado indexado (Mais Inovação, Finame…): tratar como orientação, não edital do piloto.
+      const agency = String(app?.agency || "").toLowerCase();
+      const title = String(app?.edict_title || "").toLowerCase();
+      if (agency === "bndes" || title.includes("bndes")) return true;
+      return false;
+    }
+
+    function isBndesOrientation(app) {
+      if (!isRedirectOrientation(app)) return false;
+      const blob = `${app.edict_external_id || ""} ${app.edict_title || ""} ${app.agency || ""}`.toLowerCase();
+      return blob.includes("bndes");
+    }
+
+    function improvementsOf(app) {
+      const list = app?.breakdown?.improvements;
+      return Array.isArray(list) ? list : [];
     }
 
     function edictTitleHtml(app, { short = false, heading = false } = {}) {
@@ -188,7 +217,7 @@
       if (!href) {
         return heading ? `<h2 class="program-title">${esc(label)}</h2>` : `<strong>${esc(label)}</strong>`;
       }
-      const anchor = `<a class="edict-link" href="${esc(href)}" target="_blank" rel="noopener noreferrer" title="Abrir página da chamada na FINEP">${esc(label)}</a>`;
+      const anchor = `<a class="edict-link" href="${esc(href)}" target="_blank" rel="noopener noreferrer" title="Abrir página oficial da chamada">${esc(label)}</a>`;
       return heading ? `<h2 class="program-title">${anchor}</h2>` : `<strong>${anchor}</strong>`;
     }
 
@@ -199,180 +228,508 @@
         <div class="track"><div class="fill ${cls}" style="width:${p}%"></div></div></div>`;
     }
 
-    function collectGaps(apps) {
-      const gaps = [];
-      const seen = new Set();
-      for (const a of apps || []) {
-        for (const w of a.weaknesses || []) {
-          const key = String(w).toLowerCase();
-          if (seen.has(key)) continue;
-          seen.add(key);
-          const critical = /prazo|ineleg|fora|abaixo|nao informado|não informado|vencid/i.test(w);
-          gaps.push({ text: w, critical, source: a.edict_title || a.edict_external_id });
-        }
-        if (gaps.length >= 6) break;
-      }
-      if (!gaps.length) {
-        gaps.push({
-          text: "Revisar anexos obrigatórios e elegibilidade do proponente no edital escolhido.",
-          critical: false,
-          source: "checklist geral",
-        });
-      }
-      return gaps;
+    function barNA(label, note) {
+      return `<div class="bar-row na"><div class="bar-label"><span>${esc(label)}</span><strong>N/A</strong></div>
+        <div class="track"><div class="fill" style="width:100%"></div></div>
+        <small class="muted">${esc(note)}</small></div>`;
     }
 
-    function buildActions(gaps, top) {
+    function resolveTrack(diag) {
+      const d = diag || {};
+      const track = d.report_track || (d.has_technological_risk === false ? "modernization_credit" : d.has_technological_risk ? "pd_i" : "unclear");
+      const label =
+        d.report_track_label ||
+        ({
+          pd_i: "P&D / Inovação",
+          modernization_credit: "Modernização / Crédito",
+          mixed: "Perfil misto",
+          unclear: "Perfil a confirmar",
+        }[track] || "Perfil a confirmar");
+      const hint =
+        d.report_track_hint ||
+        ({
+          pd_i: "Priorize subvenção, pesquisa ou parceria de PD&I.",
+          modernization_credit:
+            "Sem match típico de subvenção P&D na base: o caminho tende a crédito/consultoria (orientação — não é aprovação BNDES).",
+          mixed: "Compare subvenção elegível na base com crédito antes de decidir.",
+          unclear: "Refine o dossiê para classificar o caminho.",
+        }[track] || "");
+      return { track, label, hint, path: d.primary_path || (track === "modernization_credit" ? "credito" : "subvencao") };
+    }
+
+    function isCreditLike(app) {
+      if (!app) return false;
+      const inst = String(app.breakdown?.instrument || "").toLowerCase();
+      const title = `${app.edict_title || ""} ${app.agency || ""} ${app.edict_external_id || ""}`.toLowerCase();
+      return (
+        inst === "credito" ||
+        inst === "parceria" ||
+        isRedirectOrientation(app) ||
+        /bndes|finame|crédito|credito|sebraetec|fomento|inovacred|bdmg|badesc|badesul/.test(title)
+      );
+    }
+
+    function fitLabel(app) {
+      if (isRedirectOrientation(app)) return "—";
+      return `${pct(app.score)}%`;
+    }
+
+    function chanceLabel(app) {
+      if (isRedirectOrientation(app)) {
+        return isBndesOrientation(app)
+          ? "Orientação (fora da base)"
+          : "Orientação — sem match na base";
+      }
+      return levelOf(app.score).chance;
+    }
+
+    function isSubvencaoLike(app) {
+      const inst = String(app?.breakdown?.instrument || "").toLowerCase();
+      return inst === "subvencao" || inst === "pesquisa";
+    }
+
+    /** Escolhe a #1 que o gráfico deve explicar — na trilha de crédito, nunca um P&D zerado. */
+    function pickFocusApp(apps, track) {
+      const list = apps || [];
+      if (!list.length) return null;
+      if (track === "modernization_credit") {
+        const credit = list.find(isCreditLike);
+        if (credit) return credit;
+        // evita gráfico 0% de subvenção bloqueada
+        const nonSub = list.find((a) => !isSubvencaoLike(a));
+        return nonSub || list[0];
+      }
+      if (track === "pd_i") {
+        const rd = list.find(isSubvencaoLike) || list.find((a) => !isCreditLike(a));
+        return rd || list[0];
+      }
+      return list[0];
+    }
+
+    function confidenceBarsForTrack(app, track) {
+      const bd = app?.breakdown || {};
+      if (track === "modernization_credit") {
+        const inst = Number(bd.instrument);
+        // Se ainda veio 0 de um edital P&D, não exibir como falha do projeto
+        const instOk = Number.isFinite(inst) && inst > 5;
+        return `
+          <p class="criteria-note">Critérios da trilha <strong>Modernização / Crédito</strong> — não use barra de subvenção P&D neste parecer.</p>
+          ${
+            instOk
+              ? bar("Adequação ao crédito / Capex", inst, 50)
+              : barNA("Adequação ao crédito / Capex", "Aguardando opção de crédito no ranking")
+          }
+          ${bar("Encaixe operacional (porte)", bd.size, 50)}
+          ${bar("Abrangência geográfica", bd.region, 50)}
+          ${bar("Orçamento vs linha", bd.budget, 50)}
+          ${bar("Aderência textual", bd.similarity, 40)}
+          ${barNA("TRL / risco P&D", "Não se aplica a esta trilha — projeto sem perfil de subvenção")}
+        `;
+      }
+      if (track === "pd_i") {
+        return `
+          <p class="criteria-note">Critérios da trilha <strong>P&D / Inovação</strong>.</p>
+          ${bar("Tipo de fomento (P&D)", bd.instrument, 50)}
+          ${bar("Aderência ao tema", bd.area, 50)}
+          ${bar("Maturidade (TRL)", bd.trl, 50)}
+          ${bar("Porte da empresa", bd.size, 50)}
+          ${bar("Região", bd.region, 50)}
+          ${bar("Orçamento", bd.budget, 50)}
+        `;
+      }
+      return `
+        <p class="criteria-note">Critérios gerais da opção em foco.</p>
+        ${bar("Tipo de fomento", bd.instrument, 50)}
+        ${bar("Aderência ao tema", bd.area, 50)}
+        ${bar("Maturidade (TRL)", bd.trl, 50)}
+        ${bar("Porte da empresa", bd.size, 50)}
+        ${bar("Região", bd.region, 50)}
+        ${bar("Orçamento", bd.budget, 50)}
+      `;
+    }
+
+    function alertTitleFromBody(body) {
+      const t = String(body || "");
+      if (/orçamento n[aã]o bate|inconsist[eê]ncia matem/i.test(t)) return "Orçamento não fecha";
+      if (/rubricas? potencialmente vedadas|marketing|im[oó]vel|obra/i.test(t)) return "Rubrica vedada / sensível";
+      if (/risco tecnol|moderniza[cç][aã]o|subven[cç][aã]o tipicamente n[aã]o/i.test(t))
+        return "Sem enquadramento em P&D";
+      if (/cronograma inconsistente/i.test(t)) return "Cronograma inconsistente";
+      if (/dossi[eê] insuficiente|faltam defini/i.test(t)) return "Dossiê incompleto";
+      if (/TRL\s*\d+/i.test(t)) return "Maturidade inadequada";
+      return "Atenção obrigatória";
+    }
+
+    function collectAlerts(data, apps) {
+      const diag = data.diagnosis || {};
+      const items = [];
+      const seen = new Set();
+
+      function push(kind, title, body, tag) {
+        const key = `${title}|${body}`.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        items.push({ kind, title, body, tag });
+      }
+
+      const modernization = diag.has_technological_risk === false;
+      const hasCreditRec = (apps || []).some((a) => {
+        const inst = (a.breakdown?.instrument || "").toLowerCase();
+        return inst === "credito" || /bndes|finame|crédito|credito/i.test(a.edict_title || "");
+      });
+
+      (diag.critical_alerts || []).forEach((a) => {
+        const isModernizationNote = /moderniza|sem p&d|subven[cç][aã]o econ[oô]mica n[aã]o|priorize cr[eé]dito/i.test(a);
+        const danger =
+          !isModernizationNote &&
+          /orçamento n[aã]o bate|vedad|insuficiente|cronograma inconsistente|TRL \d+/i.test(a);
+        push(
+          danger ? "danger" : "warn",
+          alertTitleFromBody(a),
+          a,
+          danger ? "Bloqueio" : isModernizationNote ? "Encaminhamento" : "Ressalva"
+        );
+      });
+      (diag.ineligible_budget_items || []).forEach((item) =>
+        push("danger", "Rubrica vedada / sensível", `Item típico de bloqueio em subvenção: ${item}`, "Orçamento")
+      );
+      if (diag.budget_math_inconsistency) {
+        const decl = diag.budget_declared;
+        const sum = diag.budget_sum_items;
+        const detail =
+          decl != null && sum != null
+            ? ` Soma das rubricas ≈ R$ ${Number(sum).toLocaleString("pt-BR")} vs total R$ ${Number(decl).toLocaleString("pt-BR")}.`
+            : " A soma das rubricas diverge do total declarado.";
+        push("danger", "Orçamento não fecha", `Não encaminhar até corrigir os números.${detail}`, "Bloqueio");
+      }
+      if (modernization) {
+        push(
+          "warn",
+          "Caminho: crédito / modernização (orientação)",
+          hasCreditRec
+            ? "Não há enquadramento típico de subvenção P&D nos programas indexados (FINEP/FAPESP…). O ranking pode sugerir crédito/consultoria como orientação — isso não é match de linha BNDES nem aprovação."
+            : "Não há enquadramento típico de subvenção P&D na base. Considere crédito (consultar portal/agente), fomento estadual ou Sebraetec — fora dos editais indexados do SADS.",
+          "Encaminhamento"
+        );
+      }
+
+      // Bloqueios de editais P&D são esperados em modernização — não alarmar o gestor
+      if (!modernization) {
+        for (const a of apps || []) {
+          for (const w of (a.breakdown?.block_reasons || a.weaknesses || []).slice(0, 2)) {
+            const critical = /bloqueado|prazo|ineleg|orçamento|rubrica/i.test(w);
+            push(critical ? "danger" : "warn", critical ? "Bloqueio de elegibilidade" : "Ponto de atenção", w, "Edital");
+            if (items.length >= 8) break;
+          }
+          if (items.length >= 8) break;
+        }
+      }
+
+      if (!items.length) {
+        push("ok", "Nenhum bloqueio crítico", "Nada grave detectado nesta rodada. Confira prazo e anexos no site oficial.", "OK");
+      }
+      return items;
+    }
+
+    function buildActions(alerts, top) {
       const actions = [
         {
-          title: "Confirmar elegibilidade do proponente",
-          detail: "Verificar se empresa, ICT ou cooperativa pode submeter na chamada #1.",
+          title: "Confirmar elegibilidade",
+          detail: "Verificar se o proponente pode submeter na chamada #1.",
           when: "0–7 dias",
         },
         {
-          title: "Checar prazo de proposta",
-          detail: "Validar data limite no site FINEP (situação Aberta ≠ prazo aberto).",
+          title: "Checar prazo e anexos",
+          detail: "Validar data limite e documentos no site oficial da chamada.",
           when: "Imediato",
         },
       ];
-      for (const g of gaps.slice(0, 3)) {
+      for (const a of alerts.filter((x) => x.kind !== "ok").slice(0, 3)) {
         actions.push({
-          title: "Corrigir lacuna detectada",
-          detail: g.text,
-          when: g.critical ? "0–15 dias" : "15–30 dias",
+          title: a.kind === "danger" ? "Resolver alerta" : "Revisar aviso",
+          detail: a.body,
+          when: a.kind === "danger" ? "0–15 dias" : "15–30 dias",
         });
       }
-      actions.push({
-        title: "Preparar anexos e contrapartida",
-        detail: top
-          ? `Alinhar documentação ao edital ${top.edict_title || top.edict_external_id}.`
-          : "Alinhar documentação ao edital escolhido.",
-        when: "Antes do envio",
+      const tips = improvementsOf(top).slice(0, 2);
+      tips.forEach((t) => {
+        actions.push({ title: "Melhoria sugerida", detail: t, when: "Antes do envio" });
       });
-      return actions;
+      return actions.slice(0, 6);
     }
 
     function renderReport(project, company, data) {
       const apps = data.applications || [];
+      const blocked = data.blocked_applications || [];
+      const redirects = data.redirect_suggestions || [];
       const form = project.form_data || {};
       const title = form.title || project.title || "Projeto";
       const subtitle =
         form.summary ||
         project.raw_text_preview ||
-        "Proposta analisada automaticamente contra o corpus FINEP.";
+        "Proposta analisada automaticamente.";
       const areas = Array.isArray(form.areas)
         ? form.areas
         : form.areas
           ? [form.areas]
           : company?.areas || [];
-      const top = apps[0];
+      const trackInfo = resolveTrack(data.diagnosis);
+      const top = pickFocusApp(apps, trackInfo.track) || apps[0];
       const topLevel = levelOf(top?.score);
-      const gaps = collectGaps(apps);
-      const candidates = data.retrieval?.candidate_count ?? apps.length;
+      const alerts = collectAlerts(data, apps);
+      const modernization = trackInfo.track === "modernization_credit";
 
       document.title = `${title} — relatório`;
       document.getElementById("side-title").textContent = shortTitle(title);
-      document.getElementById("side-meta").textContent = `Status: ${project.status || "—"} · top ${apps.length}`;
+      document.getElementById("side-meta").textContent = `${trackInfo.label} · top ${apps.length}`;
       document.getElementById("page-title").textContent = title;
       document.getElementById("page-subtitle").textContent =
         subtitle.length > 160 ? subtitle.slice(0, 157) + "…" : subtitle;
       document.getElementById("page-status").textContent = apps.length
-        ? "Análise concluída"
-        : "Sem recomendações";
+        ? modernization
+          ? "Trilha crédito"
+          : "Análise concluída"
+        : redirects.length
+          ? "Sem editais elegíveis"
+          : "Sem recomendações";
       document.getElementById("page-status").className = apps.length ? "status" : "status warn";
       document.getElementById("link-edit").href = `/project-new.html?id=${encodeURIComponent(id)}`;
 
+      const badge = document.getElementById("track-badge");
+      const hint = document.getElementById("track-hint");
+      badge.hidden = false;
+      badge.className = `track-badge ${trackInfo.track}`;
+      badge.textContent = trackInfo.label;
+      hint.hidden = false;
+      hint.textContent = trackInfo.hint;
+
+      document.getElementById("porque-title").textContent =
+        top && isRedirectOrientation(top)
+          ? "Por que esta orientação (fora da base)?"
+          : modernization
+            ? "Por que este crédito / caminho Capex?"
+            : "Por que esta é a melhor opção?";
+      document.getElementById("porque-note").textContent =
+        top && isRedirectOrientation(top)
+          ? "Orientação fora da base — sem % de aderência (não é linha BNDES aprovada)"
+          : modernization
+            ? "Critérios da #1 na trilha Modernização / Crédito (editais indexados)"
+            : "Critérios da recomendação #1 na trilha do projeto";
+
       // Hero
       if (top) {
+        const topIsOrient = isRedirectOrientation(top);
         const strengths = (top.strengths || []).slice(0, 3);
-        while (strengths.length < 3) strengths.push("Revisar detalhes no breakdown");
+        while (strengths.length < 3) {
+          strengths.push(
+            topIsOrient
+              ? "Consultar agente financeiro / portal oficial — o SADS não lista linha específica"
+              : modernization
+                ? "Confirmar condições de crédito e garantias no agente financeiro"
+                : "Confirmar detalhes no edital oficial"
+          );
+        }
         const topHref = edictUrl(top);
+        const inst = instrumentLabel(top);
         document.getElementById("hero-rec").innerHTML = `
-          <div class="rank">#1 MELHOR RECOMENDAÇÃO</div>
+          <div class="rank">${
+            topIsOrient
+              ? "ORIENTAÇÃO (FORA DA BASE INDEXADA)"
+              : modernization
+                ? "#1 CAMINHO DE CRÉDITO / CAPEX"
+                : "#1 MELHOR RECOMENDAÇÃO"
+          }</div>
           ${edictTitleHtml(top, { heading: true })}
-          <p class="muted">${esc(top.summary || "Sem síntese.")}</p>
+          <p class="muted">${esc(
+            topIsOrient
+              ? (whyText(top) ||
+                  "Não há match com programa indexado no SADS (piloto FINEP/FAPESP…). Caminho provável: crédito, consultoria ou incentivo fiscal — não é aprovação.")
+              : whyText(top) || "Sem justificativa."
+          )}</p>
           <div class="program-meta">
-            <span class="chip">${esc(top.edict_external_id || "FINEP")}</span>
-            <span class="chip">Score ${esc(top.score)}/100</span>
-            <span class="chip">${esc(topLevel.chance)}</span>
-            ${topHref ? `<a class="chip chip-link" href="${esc(topHref)}" target="_blank" rel="noopener noreferrer">Abrir na FINEP ↗</a>` : ""}
+            <span class="chip">${esc(trackInfo.label)}</span>
+            ${topIsOrient ? `<span class="chip">sem % de aderência</span>` : inst ? `<span class="chip">${esc(inst)}</span>` : ""}
+            ${
+              topIsOrient
+                ? `<span class="chip">${esc(chanceLabel(top))}</span>`
+                : `<span class="chip">Aderência ${pct(top.score)}%</span><span class="chip">${esc(topLevel.chance)}</span>`
+            }
+            ${topHref ? `<a class="chip chip-link" href="${esc(topHref)}" target="_blank" rel="noopener noreferrer">Abrir edital ↗</a>` : ""}
             ${(areas || []).slice(0, 2).map((a) => `<span class="chip">${esc(a)}</span>`).join("")}
           </div>
           <div class="reasons">
             ${strengths.map((r) => `<div class="reason">${esc(r)}</div>`).join("")}
           </div>`;
-        const p = pct(top.score);
-        document.getElementById("hero-score").innerHTML = `
-          <div class="eyebrow">Compatibilidade geral</div>
-          <div class="score-ring" style="background: conic-gradient(var(--primary) 0 ${p}%, rgba(255,255,255,0.08) ${p}% 100%)">
-            <div class="score-number">${p}%</div>
-          </div>
-          <div class="range ${topLevel.key}">${esc(topLevel.label)}</div>
-          <small class="muted">Matriz v2 · similaridade, tema, TRL, porte, região, orçamento</small>`;
+        if (topIsOrient) {
+          document.getElementById("hero-score").innerHTML = `
+            <div class="eyebrow">Match na base</div>
+            <div class="score-ring" style="background: conic-gradient(var(--primary) 0 0%, rgba(255,255,255,0.08) 0% 100%)">
+              <div class="score-number">—</div>
+            </div>
+            <div class="range mid">Sem programa indexado</div>
+            <small class="muted">Orientação de caminho — não use % como aprovação</small>`;
+        } else {
+          const p = pct(top.score);
+          document.getElementById("hero-score").innerHTML = `
+            <div class="eyebrow">${modernization ? "Aderência (crédito indexado)" : "Aderência (P&D)"}</div>
+            <div class="score-ring" style="background: conic-gradient(var(--primary) 0 ${p}%, rgba(255,255,255,0.08) ${p}% 100%)">
+              <div class="score-number">${p}%</div>
+            </div>
+            <div class="range ${topLevel.key}">${esc(topLevel.label)}</div>
+            <small class="muted">Edital #1 na trilha ${esc(trackInfo.label)}</small>`;
+        }
       } else {
         document.getElementById("hero-rec").innerHTML = `
-          <div class="rank">SEM RECOMENDAÇÃO</div>
-          <h2 class="program-title">Nenhum edital ranqueado</h2>
-          <p class="muted">Verifique se o corpus FINEP está indexado e se o texto do projeto tem conteúdo suficiente.</p>`;
+          <div class="rank">SEM MATCH NA BASE INDEXADA</div>
+          <h2 class="program-title">Nenhum programa do SADS enquadrado</h2>
+          <p class="muted">${
+            redirects.length
+              ? "Não há chamada compatível nos editais indexados. Veja orientações de crédito/consultoria em Alertas — não são aprovação."
+              : "Verifique o texto do projeto e se há editais indexados (piloto FINEP)."
+          }</p>`;
+        document.getElementById("hero-score").innerHTML = `
+          <div class="eyebrow">Match na base</div>
+          <div class="score-ring" style="background: conic-gradient(var(--primary) 0 0%, rgba(255,255,255,0.08) 0% 100%)">
+            <div class="score-number">—</div>
+          </div>
+          <div class="range mid">Sem match</div>
+          <small class="muted">Nenhum programa indexado</small>`;
       }
 
       // KPIs
+      const criticalCount = alerts.filter((a) => a.kind === "danger").length;
+      const kpiFit =
+        !top ? "—" : isRedirectOrientation(top) ? "Orientação" : `${pct(top.score)}%`;
       document.getElementById("kpi-row").innerHTML = `
-        <article class="card kpi"><div class="label">Programas avaliados</div><div class="value">${esc(candidates)}</div><div class="sub">${apps.length} no top ranking</div></article>
-        <article class="card kpi"><div class="label">Orçamento do projeto</div><div class="value" style="font-size:1rem">${esc(moneyLabel(form.budget_brl))}</div><div class="sub">${form.duration_months ? esc(form.duration_months) + " meses" : "duração n/d"}</div></article>
-        <article class="card kpi"><div class="label">Chance estimada (#1)</div><div class="value">${esc(topLevel.chance.replace("Chance ", "") || "—")}</div><div class="sub">Cenário qualitativo</div></article>
-        <article class="card kpi"><div class="label">Lacunas críticas</div><div class="value">${gaps.filter((g) => g.critical).length}</div><div class="sub">${gaps.length} pontos a tratar</div></article>`;
+        <article class="card kpi"><div class="label">Trilha</div><div class="value" style="font-size:1rem">${esc(trackInfo.label)}</div><div class="sub">${esc(trackInfo.path)}</div></article>
+        <article class="card kpi"><div class="label">No ranking</div><div class="value">${apps.length}</div><div class="sub">${blocked.length} fora da trilha / bloqueado(s)</div></article>
+        <article class="card kpi"><div class="label">Orçamento</div><div class="value" style="font-size:1rem">${esc(moneyLabel(form.budget_brl))}</div><div class="sub">${form.duration_months ? esc(form.duration_months) + " meses" : "duração n/d"}</div></article>
+        <article class="card kpi"><div class="label">${top && isRedirectOrientation(top) ? "Tipo (#1)" : "Aderência (#1)"}</div><div class="value" style="font-size:1rem">${esc(kpiFit)}</div><div class="sub">${criticalCount} alerta(s) crítico(s)</div></article>`;
 
-      // Diagnóstico
-      const companySize = company?.size || "—";
-      const trl = company?.trl ?? form.trl ?? "—";
-      const bd0 = top?.breakdown || {};
-      document.getElementById("diagnostico-body").innerHTML = `
-        <article class="card">
-          <div class="profile-grid">
-            <div class="profile-item"><div class="eyebrow">Área temática</div><strong>${esc((areas || []).slice(0, 3).join("; ") || "Não informada")}</strong><small class="muted">Do formulário / empresa</small></div>
-            <div class="profile-item"><div class="eyebrow">Proponente</div><strong>${esc(company?.name || s.companyName || "Empresa")}</strong><small class="muted">Porte: ${esc(companySize)} · UF: ${esc(company?.uf || "—")}</small></div>
-            <div class="profile-item"><div class="eyebrow">Maturidade (TRL)</div><strong>${esc(trl)}</strong><small class="muted">Informado no perfil/formulário</small></div>
-            <div class="profile-item"><div class="eyebrow">Arquivo</div><strong>${esc(project.file_path ? "PDF anexado" : "Sem arquivo")}</strong><small class="muted">${esc(project.status || "")}</small></div>
-          </div>
-          ${form.summary ? `<p style="margin-top:14px">${esc(form.summary)}</p>` : ""}
-        </article>
-        <article class="card">
-          <h3>Sinais derivados do scoring (#1)</h3>
-          ${bar("Aderência textual", bd0.similarity)}
-          ${bar("Fit temático", bd0.area)}
-          ${bar("TRL", bd0.trl)}
-          ${bar("Porte / elegibilidade estrutural", bd0.size)}
-          ${bar("Região", bd0.region)}
-          ${bar("Orçamento", bd0.budget)}
-        </article>`;
+      // Alertas (banner executivo + lista)
+      const criticals = alerts.filter((a) => a.kind === "danger");
+      const warns = alerts.filter((a) => a.kind === "warn");
+      const banner = document.getElementById("alert-banner");
+      if (criticals.length) {
+        banner.hidden = false;
+        banner.className = "alert-banner danger";
+        banner.innerHTML = `<div class="alert-banner-kicker">⛔ Não encaminhar sem correção</div>
+          <strong>${criticals.length} problema(s) crítico(s) no dossiê</strong>
+          <p>${esc(criticals[0].title)} — ${esc(criticals[0].body)}</p>`;
+      } else if (modernization) {
+        banner.hidden = false;
+        banner.className = "alert-banner warn";
+        const orient = top && isRedirectOrientation(top);
+        banner.innerHTML = `<div class="alert-banner-kicker">↗ Trilha: Modernização / Crédito</div>
+          <strong>${
+            orient
+              ? "Sem match de programa na base indexada do SADS"
+              : "Subvenção P&D fora do caminho — confira editais de crédito indexados"
+          }</strong>
+          <p>${esc(
+            orient
+              ? "Base piloto: editais indexados (FINEP/FAPESP…). Sem match na base. Crédito BNDES: consultar o portal oficial — linhas específicas ainda não estão no SADS (em breve). Não é aprovação."
+              : trackInfo.hint
+          )}</p>`;
+      } else if (warns.length) {
+        banner.hidden = false;
+        banner.className = "alert-banner warn";
+        banner.innerHTML = `<div class="alert-banner-kicker">⚠ Revisar antes de encaminhar</div>
+          <strong>Há ressalvas importantes</strong>
+          <p>Leia os avisos abaixo antes de autorizar o envio.</p>`;
+      } else {
+        banner.hidden = false;
+        banner.className = "alert-banner ok";
+        banner.innerHTML = `<div class="alert-banner-kicker">✓ Sem bloqueios críticos</div>
+          <strong>Dossiê liberado na trilha ${esc(trackInfo.label)}</strong>
+          <p>Ainda confira prazo e anexos no edital oficial.</p>`;
+      }
+
+      document.getElementById("alertas-body").innerHTML = alerts
+        .map(
+          (a) => `<div class="alert-item ${a.kind === "warn" ? "warn" : a.kind}">
+            <div class="dot"></div>
+            <div><strong>${esc(a.title)}</strong><p>${esc(a.body)}</p></div>
+            <span class="tag">${esc(a.tag)}</span>
+          </div>`
+        )
+        .join("");
+
+      const sug = document.getElementById("sugestoes-body");
+      if (redirects.length) {
+        sug.hidden = false;
+        sug.innerHTML =
+          `<div class="eyebrow" style="margin-bottom:6px">Orientações fora da base (sem % / sem aprovação)</div>` +
+          redirects
+            .map(
+              (r) => `<div class="suggest-chip"><strong>${esc(r.name)}</strong><span>${esc(r.reason || r.kind || "")}</span></div>`
+            )
+            .join("");
+      } else {
+        sug.hidden = true;
+        sug.innerHTML = "";
+      }
+
+      const blk = document.getElementById("bloqueados-body");
+      if (blocked.length) {
+        blk.hidden = false;
+        blk.innerHTML =
+          `<div class="eyebrow" style="margin-bottom:6px">${
+            modernization ? "Fora da trilha (exigem P&D / subvenção)" : "Descartados por elegibilidade"
+          }</div>` +
+          blocked
+            .slice(0, 5)
+            .map((b) => {
+              const reason =
+                modernization && /risco tecnol|instrumento 0|p&d|subven/i.test(
+                  (b.breakdown?.block_reasons || b.weaknesses || []).join(" ")
+                )
+                  ? "Fora da trilha de crédito — exige P&D"
+                  : (b.breakdown?.block_reasons || b.weaknesses || [])[0] ||
+                    "Fora das regras desta chamada";
+              return `<div class="row"><strong>${esc(shortTitle(b.edict_title || b.edict_external_id))}</strong><span>${esc(shortTitle(reason))}</span></div>`;
+            })
+            .join("");
+      } else {
+        blk.hidden = true;
+        blk.innerHTML = "";
+      }
 
       // Ranking
       document.getElementById("ranking-body").innerHTML = apps.length
         ? apps
             .map((a) => {
-              const lv = levelOf(a.score);
+              const lv = isRedirectOrientation(a)
+                ? { cls: "medium", chance: chanceLabel(a) }
+                : levelOf(a.score);
               const href = edictUrl(a);
+              const inst = instrumentLabel(a);
+              const kindChip = isRedirectOrientation(a) ? "orientação (fora da base)" : (inst || a.edict_external_id || "");
               return `<div class="program-row" role="button" tabindex="0" data-app="${esc(a.id)}">
                 <div class="medal">${esc(a.rank_position || "—")}</div>
                 <div>${edictTitleHtml(a, { short: true })}
-                  <div class="muted">${esc(a.edict_external_id || "")}${href ? ` · <a class="edict-link muted-link" href="${esc(href)}" target="_blank" rel="noopener noreferrer">FINEP ↗</a>` : ""}</div></div>
+                  <div class="muted">${esc(kindChip)}${href ? ` · <a class="edict-link muted-link" href="${esc(href)}" target="_blank" rel="noopener noreferrer">Abrir ↗</a>` : ""}</div></div>
                 <div class="hide-tablet"><strong>${esc(moneyLabel(form.budget_brl))}</strong><div class="muted">orçamento projeto</div></div>
                 <div class="hide-tablet"><span class="chance ${lv.cls}">${esc(lv.chance)}</span></div>
-                <div class="fit">${pct(a.score)}%</div>
+                <div class="fit">${esc(fitLabel(a))}</div>
                 <div class="arrow">›</div>
               </div>`;
             })
             .join("")
-        : `<p class="muted">Nenhum programa no ranking.</p>`;
+        : `<p class="muted">Nenhum programa no ranking.${redirects.length ? " Veja as sugestões em Alertas." : ""}</p>`;
 
       document.querySelectorAll(".program-row").forEach((row) => {
         const openDetail = () => {
           const app = apps.find((x) => String(x.id) === String(row.dataset.app));
           if (!app) return;
           showDetail(app);
-          document.getElementById("criterios").scrollIntoView({ behavior: "smooth" });
-          renderCriteria(app, apps);
+          document.getElementById("porque").scrollIntoView({ behavior: "smooth" });
+          // Na trilha crédito, só redesenha o gráfico se a opção clicada for crédito-like
+          if (modernization && !isCreditLike(app)) {
+            showDetail(app);
+            return;
+          }
+          renderWhy(app, apps, trackInfo);
         };
         row.onclick = (ev) => {
           if (ev.target.closest("a")) return;
@@ -386,23 +743,11 @@
         };
       });
 
-      renderCriteria(top, apps);
+      renderWhy(top, apps, trackInfo);
 
-      // Lacunas
-      document.getElementById("lacunas-body").innerHTML = gaps
-        .map(
-          (g) => `<div class="gap-item">
-            <div class="severity ${g.critical ? "high-sev" : ""}"></div>
-            <div><strong>${esc(g.text)}</strong>
-              <div class="muted">Origem: ${esc(g.source)}</div></div>
-            <span class="impact ${g.critical ? "critical" : ""}">${g.critical ? "Impacto alto" : "Impacto médio"}</span>
-          </div>`
-        )
-        .join("");
-
-      // Plano
-      const actions = buildActions(gaps, top);
-      document.getElementById("plano-body").innerHTML = `
+      // Próximos passos
+      const actions = buildActions(alerts, top);
+      document.getElementById("proximos-body").innerHTML = `
         <article class="card action-list">
           ${actions
             .map(
@@ -415,22 +760,24 @@
             .join("")}
         </article>
         <article class="card">
-          <h3>Próxima decisão</h3>
+          <h3>Decisão sugerida</h3>
           <p>${esc(
             top
-              ? `Priorizar o edital #1 (${top.edict_title || top.edict_external_id}) se elegibilidade e prazo forem confirmados; caso contrário, avaliar #2/#3 do ranking.`
-              : "Não há ranking — refine o texto do projeto ou atualize o corpus FINEP."
+              ? `Priorizar a #1 se elegibilidade e prazo estiverem ok; senão, avaliar #2/#3.`
+              : redirects.length
+                ? "Não encaminhar para subvenção aberta agora — seguir as sugestões alternativas."
+                : "Refine o dossiê ou atualize a base de editais."
           )}</p>
-          <div style="background:var(--primary-soft); border-radius:12px; padding:15px; margin-top:18px; color:#21489f;">
-            <strong>Recomendação da aplicação</strong>
-            <p style="margin-bottom:0">${esc(
-              top?.summary ||
-                "Conclua a avaliação e valide anexos, prazo e tipo de proponente antes de submeter."
+          <div style="background:var(--primary-soft); border-radius:12px; padding:15px; margin-top:18px;">
+            <strong style="color:var(--primary)">Recomendação SADS</strong>
+            <p style="margin-bottom:0;color:var(--muted)">${esc(
+              whyText(top) ||
+                "Valide anexos, prazo e tipo de proponente antes de submeter."
             )}</p>
           </div>
           ${
             top
-              ? `<button class="primary no-print" style="margin-top:16px;background:#173774;color:#fff;border:0" type="button" id="btn-submit-top">Marcar #1 como submetido</button>`
+              ? `<button class="primary no-print" style="margin-top:16px" type="button" id="btn-submit-top">Marcar #1 como submetido</button>`
               : ""
           }
         </article>`;
@@ -440,9 +787,9 @@
           const done = button.dataset.done === "true";
           button.dataset.done = String(!done);
           button.textContent = done ? "" : "✓";
-          button.style.background = done ? "#fff" : "#e8f7f1";
+          button.style.background = done ? "transparent" : "#e8f7f1";
           button.style.color = "#16835f";
-          button.style.borderColor = done ? "#cbd5e1" : "#95d6bd";
+          button.style.borderColor = done ? "" : "#95d6bd";
         };
       });
 
@@ -467,56 +814,93 @@
 
     function showDetail(app) {
       const panel = document.getElementById("rank-detail");
-      const lv = levelOf(app.score);
       const href = edictUrl(app);
+      const inst = instrumentLabel(app);
+      const orient = isRedirectOrientation(app);
       panel.classList.add("open");
       panel.innerHTML = `
-        <div class="eyebrow">Detalhe da chamada</div>
+        <div class="eyebrow">${orient ? "Orientação (fora da base)" : "Detalhe da chamada"}</div>
         <h3 style="margin-top:6px">${edictTitleHtml(app)}</h3>
-        <p class="muted">${esc(app.edict_external_id || "")} · ${esc(lv.chance)} · ${pct(app.score)}%</p>
-        ${href ? `<p><a class="edict-link" href="${esc(href)}" target="_blank" rel="noopener noreferrer">Abrir página oficial na FINEP ↗</a></p>` : ""}
-        <p>${esc(app.summary || "")}</p>
-        <p><strong>Forças:</strong> ${(app.strengths || []).map(esc).join(" · ") || "—"}</p>
-        <p><strong>Fraquezas:</strong> ${(app.weaknesses || []).map(esc).join(" · ") || "—"}</p>`;
+        <p class="muted">${
+          orient
+            ? `${esc(chanceLabel(app))} · sem % de aderência (não é edital indexado)`
+            : `${esc(inst || app.edict_external_id || "")} · ${esc(levelOf(app.score).chance)} · ${pct(app.score)}%`
+        }</p>
+        ${href ? `<p><a class="edict-link" href="${esc(href)}" target="_blank" rel="noopener noreferrer">Abrir página oficial ↗</a></p>` : ""}
+        <p>${esc(
+          orient
+            ? whyText(app) ||
+                "Não há match com programa na base do SADS. Trate como caminho possível (crédito/consultoria/incentivo), não como aprovação."
+            : whyText(app) || ""
+        )}</p>
+        <p><strong>Pontos a favor:</strong> ${(app.strengths || []).map(esc).join(" · ") || "—"}</p>
+        <p><strong>Atenções:</strong> ${(app.weaknesses || []).map(esc).join(" · ") || "—"}</p>`;
     }
 
-    function renderCriteria(app, allApps) {
-      const box = document.getElementById("criterios-body");
+    function renderWhy(app, allApps, trackInfo) {
+      const box = document.getElementById("porque-body");
+      const track = trackInfo || resolveTrack({});
       if (!app) {
-        box.innerHTML = `<article class="card"><p class="muted">Sem critérios — ranking vazio.</p></article>`;
+        box.innerHTML = `<article class="card"><p class="muted">Sem critérios — ranking vazio nesta trilha.</p></article>`;
         return;
       }
-      const bd = app.breakdown || {};
-      const w = bd.weights || {};
-      const second = (allApps || [])[1];
+      // Nunca explicar "melhor opção" com barras 0% de subvenção na trilha crédito
+      const focus =
+        track.track === "modernization_credit" && !isCreditLike(app)
+          ? pickFocusApp(allApps, track.track) || app
+          : app;
+      const peers = (allApps || []).filter((a) =>
+        track.track === "modernization_credit" ? isCreditLike(a) : true
+      );
+      const second = peers.find((a) => a !== focus && String(a.id) !== String(focus.id));
+      const focusOrient = isRedirectOrientation(focus);
+      const compare =
+        second?.breakdown?.comparison_note ||
+        focus.breakdown?.comparison_note ||
+        (second
+          ? isRedirectOrientation(second)
+            ? `Também há orientação: ${shortTitle(second.edict_title || second.edict_external_id)} (fora da base — sem %).`
+            : `A alternativa indexada (${shortTitle(second.edict_title || second.edict_external_id)}) ficou com ${pct(second.score)}% de aderência.`
+          : "");
+      const barsBlock = focusOrient
+        ? `<p class="muted">Sem gráfico de aderência: isto é orientação fora dos programas indexados (não use % como aprovação BNDES/FINEP).</p>`
+        : confidenceBarsForTrack(focus, track.track);
       box.innerHTML = `
         <article class="card">
-          ${bar(`Similaridade (${Math.round((w.similarity || 0.3) * 100)}%)`, bd.similarity)}
-          ${bar(`Tema / áreas (${Math.round((w.area || 0.25) * 100)}%)`, bd.area)}
-          ${bar(`TRL (${Math.round((w.trl || 0.15) * 100)}%)`, bd.trl)}
-          ${bar(`Porte (${Math.round((w.size || 0.15) * 100)}%)`, bd.size)}
-          ${bar(`Região (${Math.round((w.region || 0.1) * 100)}%)`, bd.region)}
-          ${bar(`Orçamento (${Math.round((w.budget || 0.05) * 100)}%)`, bd.budget)}
+          ${barsBlock}
         </article>
         <article class="card">
-          <h3>Por que ficou em primeiro lugar?</h3>
-          <p>${esc(app.summary || "Maior score composto na matriz v2 entre os candidatos retornados.")}</p>
+          <h3>${
+            focusOrient
+              ? "Por que esta orientação?"
+              : track.track === "modernization_credit"
+                ? "Por que este é o caminho?"
+                : "Por que ficou em primeiro?"
+          }</h3>
+          <p>${esc(
+            whyText(focus) ||
+              (focusOrient
+                ? "Não há match com programa na base do SADS; o caminho tende a crédito/consultoria/incentivo fiscal."
+                : track.track === "modernization_credit"
+                ? "Projeto de Capex/modernização: crédito reembolsável encaixa melhor que subvenção P&D."
+                : "Melhor encaixe geral entre as opções elegíveis.")
+          )}</p>
+          <p class="muted" style="margin-top:12px">${esc(track.hint)}</p>
           ${
             second
-              ? `<h3 style="margin-top:20px">Por que ${esc(shortTitle(second.edict_title || second.edict_external_id))} não ficou em primeiro?</h3>
-                 <p class="muted">${esc(second.summary || `Score ${second.score}/100 — abaixo do #1.`)}</p>`
+              ? `<h3 style="margin-top:20px">Alternativa na mesma trilha</h3>
+                 <p class="muted">${esc(compare)}</p>`
               : ""
           }
-          <p class="muted" style="margin-top:16px">Pesos: similaridade 30% · tema 25% · TRL 15% · porte 15% · região 10% · orçamento 5%.</p>
         </article>`;
     }
 
     async function runEvaluate() {
-      setBanner("Cruzando projeto com editais FINEP indexados…", "info");
+      setBanner("Gerando recomendações…", "info");
       const data = await api(`/api/v1/projects/${id}/evaluate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agency: "FINEP", k: 8, top_n: 5 }),
+        body: JSON.stringify({ k: 8, top_n: 5 }),
       });
       lastPayload = data;
       const project = data.project || (await api(`/api/v1/projects/${id}`));
@@ -525,7 +909,7 @@
         (project.company_id ? await api(`/api/v1/companies/${project.company_id}`).catch(() => null) : null);
       renderReport(project, company, data);
       setBanner(
-        `Relatório gerado: ${(data.applications || []).length} recomendação(ões) · candidatos=${data.retrieval?.candidate_count ?? "—"}`,
+        `Pronto · ${(data.applications || []).length} no ranking · ${(data.blocked_applications || []).length} bloqueado(s)`,
         "ok"
       );
       return data;
@@ -542,7 +926,7 @@
       a.download = `relatorio-fomento-${id}.json`;
       a.click();
       URL.revokeObjectURL(a.href);
-      setBanner("JSON do relatório exportado. Use Imprimir / PDF para versão visual.", "ok");
+      setBanner("JSON exportado. Use Imprimir / PDF para a versão visual.", "ok");
     }
 
     document.querySelectorAll(".side-nav a").forEach((link) => {
@@ -577,7 +961,17 @@
           const apps = await api(
             `/api/v1/applications?company_id=${s.companyId}&project_id=${id}`
           );
-          lastPayload = { applications: apps, project, company };
+          const recommended = (apps || []).filter((a) => a.status === "recommended");
+          const blocked = (apps || []).filter((a) => a.status === "blocked");
+          lastPayload = {
+            applications: recommended.length ? recommended : apps,
+            blocked_applications: blocked,
+            project,
+            company,
+            diagnosis: (project.form_data || {}).project_diagnosis || {},
+            redirect_suggestions:
+              ((project.form_data || {}).project_diagnosis || {}).redirect_suggestions || [],
+          };
           renderReport(project, company, lastPayload);
           setBanner(`Usando recomendações salvas. Erro ao reavaliar: ${err.message}`, "info");
         } catch (e2) {

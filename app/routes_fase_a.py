@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
-import shutil
+import tempfile
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -15,10 +16,21 @@ from uuid import UUID
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from sqlalchemy import func, select
 
+from agents.project_risk import diagnose_project
 from agents.retrieval_agent import CompanyProfile, ProjectQuery, RetrievalAgent
 from agents.scoring_agent import ScoringAgent
+from agents.form_extraction_agent import FormExtractionAgent
 from app.cnpj_lookup import lookup_cnpj
 from app.config import ROOT_DIR, get_settings
+from app.crypto import (
+    CryptoError,
+    decrypt_form_data,
+    decrypt_text,
+    encrypt_form_data,
+    encrypt_text,
+    encryption_enabled,
+    write_encrypted_file,
+)
 from app.pdf_form import guess_form_fields
 from app.schemas import (
     ApplicationOut,
@@ -41,6 +53,7 @@ from scripts.extract_pdfs import extract_pdf, slugify
 
 router = APIRouter(prefix="/api/v1")
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 
 def _optional_uuid(value: str | UUID | None) -> UUID | None:
@@ -77,7 +90,14 @@ def _company_to_out(c: Company) -> CompanyOut:
 
 
 def _project_to_out(p: Project) -> ProjectOut:
-    preview = (p.raw_text or "")[:500] or None
+    try:
+        plain_text = decrypt_text(p.raw_text)
+        form = decrypt_form_data(p.form_data if isinstance(p.form_data, dict) else {})
+    except CryptoError as exc:
+        logger.warning("project_decrypt_failed id=%s err=%s", p.id, exc)
+        plain_text = None
+        form = {}
+    preview = (plain_text or "")[:500] or None
     return ProjectOut(
         id=p.id,
         company_id=p.company_id,
@@ -85,7 +105,7 @@ def _project_to_out(p: Project) -> ProjectOut:
         title=p.title,
         status=p.status,
         file_path=p.file_path,
-        form_data=p.form_data or {},
+        form_data=form,
         raw_text_preview=preview,
         created_at=p.created_at,
     )
@@ -313,25 +333,62 @@ async def create_project(
     dest = uploads / safe_name
 
     try:
-        with dest.open("wb") as out:
-            shutil.copyfileobj(file.file, out)
+        plaintext = await file.read()
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"Falha ao salvar PDF: {exc}") from exc
+        raise HTTPException(500, f"Falha ao ler PDF: {exc}") from exc
+    if not plaintext:
+        raise HTTPException(400, "PDF vazio")
+
+    # Extrai texto de arquivo temporário em claro; grava no disco já cifrado (se houver chave).
+    tmp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+            tmp.write(plaintext)
+            tmp_path = Path(tmp.name)
+        try:
+            raw_text, _pages, n_chars = extract_pdf(tmp_path)
+        except Exception as exc:  # noqa: BLE001
+            raw_text, n_chars = "", 0
+            form = guess_form_fields("", filename=filename)
+            form["notes"] = f"Falha na extracao do PDF ({exc}). Preencha manualmente."
+            extract_meta: dict = {
+                "extraction_method": "heuristic",
+                "llm_notes": "pdf_extract_failed",
+            }
+        else:
+            extraction = FormExtractionAgent().extract(raw_text, filename=filename)
+            form = extraction.form
+            form["extracted_chars"] = n_chars
+            extract_meta = {
+                "extraction_method": extraction.method,
+                "weak_before": extraction.weak_before,
+                "filled_by_llm": extraction.filled_by_llm,
+                "llm_notes": extraction.llm_notes,
+            }
+    finally:
+        if tmp_path is not None:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
 
     try:
-        raw_text, _pages, n_chars = extract_pdf(dest)
+        stored_size = write_encrypted_file(dest, plaintext)
+    except CryptoError as exc:
+        raise HTTPException(500, f"Falha ao cifrar PDF: {exc}") from exc
     except Exception as exc:  # noqa: BLE001
-        raw_text, n_chars = "", 0
-        form = guess_form_fields("", filename=filename)
-        form["notes"] = f"Falha na extracao do PDF ({exc}). Preencha manualmente."
-    else:
-        form = guess_form_fields(raw_text, filename=filename)
-        form["extracted_chars"] = n_chars
+        raise HTTPException(500, f"Falha ao salvar PDF: {exc}") from exc
 
     if title and title.strip():
         form["title"] = title.strip()
 
     rel_path = _safe_relpath(dest)
+    enc_on = encryption_enabled()
+    try:
+        sealed_text = encrypt_text(raw_text or None)
+        sealed_form = encrypt_form_data(form)
+    except CryptoError as exc:
+        raise HTTPException(500, f"Falha ao cifrar dossie: {exc}") from exc
 
     async with session_scope() as session:
         company = await session.get(Company, company_uuid)
@@ -347,10 +404,15 @@ async def create_project(
             created_by=employee_uuid,
             title=str(form.get("title") or filename)[:300],
             file_path=rel_path,
-            raw_text=raw_text or None,
+            raw_text=sealed_text,
             status="draft",
-            form_data=form,
-            metadata_={"source_filename": filename, "extracted_chars": form.get("extracted_chars")},
+            form_data=sealed_form,
+            metadata_={
+                "source_filename": filename,
+                "extracted_chars": form.get("extracted_chars"),
+                "encryption_at_rest": enc_on,
+                **extract_meta,
+            },
         )
         session.add(project)
         await session.flush()
@@ -362,7 +424,7 @@ async def create_project(
             file_path=rel_path,
             doc_type="project_pdf",
             content_type=file.content_type or "application/pdf",
-            byte_size=dest.stat().st_size,
+            byte_size=stored_size,
         )
         session.add(doc)
         await session.commit()
@@ -398,19 +460,28 @@ async def patch_project(project_id: UUID, body: ProjectPatch) -> ProjectOut:
         project = await session.get(Project, project_id)
         if not project:
             raise HTTPException(404, "Projeto nao encontrado")
+        try:
+            fd = decrypt_form_data(
+                project.form_data if isinstance(project.form_data, dict) else {}
+            )
+        except CryptoError as exc:
+            raise HTTPException(500, f"Falha ao decifrar form_data: {exc}") from exc
         if body.title is not None:
             project.title = body.title
-            fd = dict(project.form_data or {})
             fd["title"] = body.title
-            project.form_data = fd
         if body.form_data is not None:
-            merged = dict(project.form_data or {})
-            merged.update(body.form_data)
-            project.form_data = merged
+            fd.update(body.form_data)
             if "title" in body.form_data and body.form_data["title"]:
                 project.title = str(body.form_data["title"])
+        try:
+            project.form_data = encrypt_form_data(fd)
+        except CryptoError as exc:
+            raise HTTPException(500, f"Falha ao cifrar form_data: {exc}") from exc
         if body.status is not None:
             project.status = body.status
+        meta = dict(project.metadata_ or {})
+        meta["encryption_at_rest"] = encryption_enabled()
+        project.metadata_ = meta
         await session.commit()
         await session.refresh(project)
         return _project_to_out(project)
@@ -429,11 +500,18 @@ async def evaluate_project(project_id: UUID, body: EvaluateRequest | None = None
         if not company:
             raise HTTPException(404, "Empresa nao encontrada")
 
-        form = project.form_data or {}
+        try:
+            form = decrypt_form_data(
+                project.form_data if isinstance(project.form_data, dict) else {}
+            )
+            project_text = decrypt_text(project.raw_text) or str(
+                form.get("summary") or project.title
+            )
+        except CryptoError as exc:
+            raise HTTPException(500, f"Falha ao decifrar dossie para avaliacao: {exc}") from exc
         areas = list(company.areas or [])
         if isinstance(form.get("areas"), list):
             areas = list({*areas, *[str(a) for a in form["areas"]]})
-        project_text = project.raw_text or str(form.get("summary") or project.title)
         if len(project_text) < 50:
             project_text = (project_text + "\n" + json.dumps(form, ensure_ascii=False))[:4000]
 
@@ -444,17 +522,34 @@ async def evaluate_project(project_id: UUID, body: EvaluateRequest | None = None
         elif company.trl is not None:
             project_trl = int(company.trl)
 
+        revenue_val = float(company.revenue_brl) if company.revenue_brl is not None else None
+        goal_pref = None
+        if isinstance(form.get("goal_preference"), str):
+            goal_pref = form.get("goal_preference")
+        elif isinstance((company.metadata_ or {}).get("goal_preference"), str):
+            goal_pref = (company.metadata_ or {}).get("goal_preference")
+
         company_profile = CompanyProfile(
             name=company.name,
             size=company.size,
             trl=project_trl,
             areas=areas,
             uf=company.uf,
+            revenue_brl=revenue_val,
+            goal_preference=goal_pref,
         )
         project_query = ProjectQuery(
             title=project.title,
             text=project_text,
             budget_brl=form.get("budget_brl"),
+            form_data=dict(form),
+        )
+        diagnosis = diagnose_project(
+            title=project.title,
+            text=project_text,
+            form_data=dict(form),
+            trl=project_trl,
+            uf=company.uf,
         )
 
         # dados para fora da sessao
@@ -465,7 +560,10 @@ async def evaluate_project(project_id: UUID, body: EvaluateRequest | None = None
             "trl": project_trl,
             "areas": areas,
             "uf": company.uf,
+            "revenue_brl": revenue_val,
+            "goal_preference": goal_pref or "auto",
         }
+        diagnosis_dump = diagnosis.to_dict()
 
     retrieval = RetrievalAgent()
     scoring = ScoringAgent()
@@ -476,15 +574,42 @@ async def evaluate_project(project_id: UUID, body: EvaluateRequest | None = None
             k=body.k,
             agency=body.agency,
         )
+        matches = list(retrieval_result.matches)
+        # Modernização: reforça busca por crédito BNDES (entrada institucional ampla) no corpus
+        if not diagnosis.has_technological_risk and (body.agency or "").strip().upper() != "BNDES":
+            try:
+                bndes_extra = await retrieval.retrieve(
+                    project_query,
+                    company_profile,
+                    k=max(5, body.k // 2),
+                    agency="BNDES",
+                )
+                seen = {m.external_id for m in matches if m.external_id}
+                for m in bndes_extra.matches:
+                    if m.external_id and m.external_id not in seen:
+                        matches.append(m)
+                        seen.add(m.external_id)
+            except Exception:  # noqa: BLE001
+                pass
         scoring_result = scoring.score_matches(
             project=project_query,
             company=company_profile,
-            matches=retrieval_result.matches,
+            matches=matches,
+            revenue_brl=company_profile.revenue_brl,
+            goal_preference=company_profile.goal_preference,
+            diagnosis=diagnosis,
         )
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Falha na avaliacao: {exc}") from exc
 
-    top_reports = scoring_result.reports[: body.top_n]
+    # Persiste elegíveis recomendados + bloqueados (para auditoria no relatório)
+    recommended = list(scoring_result.recommended)[: body.top_n]
+    blocked = list(scoring_result.blocked)[: max(5, body.top_n)]
+    # Se não houver elegível com score >= 60, ainda assim não promove bloqueados a "recommended"
+    persist_reports: list[tuple[Any, str]] = [
+        *((r, "recommended") for r in recommended),
+        *((r, "blocked") for r in blocked),
+    ]
     saved: list[ApplicationOut] = []
 
     async with session_scope() as session:
@@ -497,14 +622,14 @@ async def evaluate_project(project_id: UUID, body: EvaluateRequest | None = None
             await session.scalars(
                 select(Application).where(
                     Application.project_id == project_id,
-                    Application.status.in_(["recommended", "draft"]),
+                    Application.status.in_(["recommended", "draft", "blocked"]),
                 )
             )
         ).all()
         for row in old:
             await session.delete(row)
 
-        for i, report in enumerate(top_reports, start=1):
+        for i, (report, app_status) in enumerate(persist_reports, start=1):
             edict_uuid = None
             edict_page_url: str | None = None
             if report.external_id:
@@ -523,23 +648,45 @@ async def evaluate_project(project_id: UUID, body: EvaluateRequest | None = None
             )
             if page_url:
                 breakdown["edict_url"] = page_url
+            breakdown["why_this"] = report.why_this
+            breakdown["comparison_note"] = report.comparison_note
+            breakdown["improvements"] = report.improvements
+            breakdown["instrument"] = report.instrument
+            breakdown["instrument_label"] = (
+                breakdown.get("instrument_label")
+                or getattr(report, "instrument_label", None)
+                or report.instrument
+            )
+            breakdown["context"] = report.context
+            breakdown["eligibility_status"] = report.eligibility_status
+            breakdown["block_reasons"] = report.block_reasons
+            breakdown["eligible"] = report.eligible
             app_row = Application(
                 project_id=project_id,
                 company_id=company_id,
                 edict_id=edict_uuid,
                 edict_external_id=report.external_id,
                 edict_title=report.title,
-                rank_position=i,
+                rank_position=i if app_status == "recommended" else None,
                 score=report.score,
                 breakdown=breakdown,
                 strengths=report.strengths,
                 weaknesses=report.weaknesses,
-                summary=report.summary,
-                status="recommended",
-                was_in_top3=True,
+                summary=report.summary or report.why_this,
+                status=app_status,
+                was_in_top3=app_status == "recommended" and i <= 3,
             )
             session.add(app_row)
 
+        # Persiste diagnóstico Gate 0 no form_data do projeto (re-cifra envelope)
+        form["project_diagnosis"] = diagnosis_dump
+        try:
+            project.form_data = encrypt_form_data(form)
+        except CryptoError as exc:
+            raise HTTPException(500, f"Falha ao cifrar form_data pos-avaliacao: {exc}") from exc
+        meta = dict(project.metadata_ or {})
+        meta["encryption_at_rest"] = encryption_enabled()
+        project.metadata_ = meta
         project.status = "evaluated"
         await session.commit()
 
@@ -559,19 +706,27 @@ async def evaluate_project(project_id: UUID, body: EvaluateRequest | None = None
             "id": str(project.id),
             "title": project.title,
             "status": project.status,
-            "form_data": project.form_data or {},
-            "raw_text_preview": (project.raw_text or "")[:500] or None,
+            "form_data": form,
+            "raw_text_preview": (project_text or "")[:500] or None,
             "file_path": project.file_path,
             "created_at": project.created_at.isoformat() if project.created_at else None,
+            "encryption_at_rest": encryption_enabled(),
         }
+
+    recommended_out = [a for a in saved if a.status == "recommended"]
+    blocked_out = [a for a in saved if a.status == "blocked"]
 
     return {
         "status": "ok",
         "project_id": str(project_id),
         "project": project_snap,
         "company": company_dump,
+        "context": scoring_result.context,
+        "diagnosis": scoring_result.diagnosis or diagnosis_dump,
+        "redirect_suggestions": scoring_result.redirect_suggestions,
         "retrieval": retrieval_result.to_dict(),
-        "applications": [a.model_dump(mode="json") for a in saved],
+        "applications": [a.model_dump(mode="json") for a in recommended_out],
+        "blocked_applications": [a.model_dump(mode="json") for a in blocked_out],
         "weights": (
             scoring_result.reports[0].breakdown.weights
             if scoring_result.reports
@@ -617,8 +772,18 @@ async def upload_document(
     uploads.mkdir(parents=True, exist_ok=True)
     safe = f"{uuid.uuid4().hex[:8]}_{slugify(file.filename)}{Path(file.filename).suffix.lower() or '.bin'}"
     dest = uploads / safe
-    with dest.open("wb") as out:
-        shutil.copyfileobj(file.file, out)
+    try:
+        plaintext = await file.read()
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Falha ao ler arquivo: {exc}") from exc
+    if not plaintext:
+        raise HTTPException(400, "Arquivo vazio")
+    try:
+        stored_size = write_encrypted_file(dest, plaintext)
+    except CryptoError as exc:
+        raise HTTPException(500, f"Falha ao cifrar arquivo: {exc}") from exc
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Falha ao salvar arquivo: {exc}") from exc
     rel = _safe_relpath(dest)
 
     async with session_scope() as session:
@@ -632,7 +797,7 @@ async def upload_document(
             file_path=rel,
             doc_type=doc_type,
             content_type=file.content_type,
-            byte_size=dest.stat().st_size,
+            byte_size=stored_size,
         )
         session.add(doc)
         await session.commit()

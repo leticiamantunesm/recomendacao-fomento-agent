@@ -1,0 +1,142 @@
+[
+  {
+    "id": "01",
+    "alias": "SojaResiliente AI",
+    "file": "AgroBioTech_Ltda.pdf",
+    "expect": "pass_ideal",
+    "ok": true,
+    "obtained": "ideal eligible=True score=89.6",
+    "tech_risk": true,
+    "n_recommended": 3,
+    "n_blocked": 2,
+    "top": "FAPESP PIPE Fase 2 / Centelha SP",
+    "redirect": []
+  },
+  {
+    "id": "02",
+    "alias": "CardioPatch IoT",
+    "file": "VidaSense_Tecnologias_Médicas_SA.pdf",
+    "expect": "pass_ideal",
+    "ok": true,
+    "obtained": "ideal eligible=True score=88.0",
+    "tech_risk": true,
+    "n_recommended": 2,
+    "n_blocked": 3,
+    "top": "Tecnova III RS / FINEP Mais Inovação Saúde",
+    "redirect": []
+  },
+  {
+    "id": "03",
+    "alias": "Padaria Digital 4.0",
+    "file": "Pão_Quente_Comércio_de_Alimentos_Ltda.pdf",
+    "expect": "block_no_tech_risk",
+    "ok": true,
+    "obtained": "tech_risk=False rec=0",
+    "tech_risk": false,
+    "n_recommended": 0,
+    "n_blocked": 4,
+    "top": null,
+    "redirect": [
+      "Sebraetec",
+      "Fomento Paraná",
+      "BNDES — crédito e financiamento (orientação)",
+      "FINEP Inovacred (se houver inovação de processo)"
+    ]
+  },
+  {
+    "id": "04",
+    "alias": "NeuroGen Terapias",
+    "file": "NeuroGen_Biotec.pdf",
+    "expect": "alert_forbidden_budget",
+    "ok": true,
+    "obtained": "forbidden=['compra de imóvel/terreno']",
+    "tech_risk": true,
+    "n_recommended": 0,
+    "n_blocked": 4,
+    "top": null,
+    "redirect": []
+  },
+  {
+    "id": "05",
+    "alias": "EcoPlast Paraná",
+    "file": "EcoPlast_Ind_Polimeros.pdf",
+    "expect": "block_region",
+    "ok": true,
+    "obtained": "INELEGÍVEL POR REGIÃO",
+    "tech_risk": true,
+    "n_recommended": 1,
+    "n_blocked": 3,
+    "top": "Centelha 3 — exclusivo MPE/startup",
+    "redirect": []
+  },
+  {
+    "id": "06",
+    "alias": "AgroTitan / DroneAgro",
+    "file": "agrotitan_sa.pdf",
+    "expect": "block_size",
+    "ok": true,
+    "obtained": "INELEGÍVEL POR PORTE/CNPJ",
+    "tech_risk": true,
+    "n_recommended": 0,
+    "n_blocked": 4,
+    "top": null,
+    "redirect": []
+  },
+  {
+    "id": "07",
+    "alias": "CineRaízes da Serra",
+    "file": "Produtora_Olhar_Cultural_Ltda.pdf",
+    "expect": "pass_cultural",
+    "ok": true,
+    "obtained": "tech_risk=False",
+    "tech_risk": false,
+    "n_recommended": 1,
+    "n_blocked": 4,
+    "top": "ProAC Editais / Lei Rouanet — Audiovisual",
+    "redirect": [
+      "Sebraetec",
+      "Desenvolve SP",
+      "BNDES — crédito e financiamento (orientação)",
+      "FINEP Inovacred (se houver inovação de processo)"
+    ]
+  },
+  {
+    "id": "08",
+    "alias": "QuantumSec Brasil",
+    "file": "projeto_08_Carlos_Eduardo_Silva_Pessoa_Física.pdf",
+    "expect": "block_pf_trl",
+    "ok": true,
+    "obtained": "PF size=PF credito_eligible=[]",
+    "tech_risk": true,
+    "n_recommended": 0,
+    "n_blocked": 4,
+    "top": null,
+    "redirect": []
+  },
+  {
+    "id": "09",
+    "alias": "H2V Sul Energia",
+    "file": "projeto_09_Ventos_do_Sul_Energia_SA.pdf",
+    "expect": "pass_ideal",
+    "ok": true,
+    "obtained": "ideal eligible=True score=85.1",
+    "tech_risk": true,
+    "n_recommended": 2,
+    "n_blocked": 3,
+    "top": "EMBRAPII / FINEP Transição Energética Hidrogênio Verde",
+    "redirect": []
+  },
+  {
+    "id": "10",
+    "alias": "SmartLogística ERP",
+    "file": "projeto_10_RotaCerta_Softwares_Ltda.pdf",
+    "expect": "alert_budget_math_and_ads",
+    "ok": true,
+    "obtained": "math=True forbidden=['marketing comercial / ads']",
+    "tech_risk": true,
+    "n_recommended": 0,
+    "n_blocked": 4,
+    "top": null,
+    "redirect": []
+  }
+]

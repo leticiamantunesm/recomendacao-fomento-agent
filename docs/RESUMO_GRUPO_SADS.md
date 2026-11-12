@@ -65,7 +65,8 @@ Na UI, o botão Avaliar chama Retrieval + Scoring. Generation completa aparece s
 ## 7. Implementado vs planejado
 
 **Implementado:** auth senha, Fase A UI, FINEP, retrieval, scoring v2, relatório, aplicações.  
-**Planejado:** SSO, RBAC fino, chat LLM seguro, multi-fonte, AHP/TOPSIS.
+**Parcial:** coleta FAPESP, Embrapii e BNDES (detalhe + anexos); CNPq/Centelha ainda rasas.  
+**Planejado:** SSO, RBAC fino, chat LLM seguro, multi-fonte validada em produção, AHP/TOPSIS.
 
 ---
 

@@ -10,19 +10,22 @@ from typing import Any, Sequence
 
 from sqlalchemy import text
 
+from agents.instruments import infer_instrument
 from app.embeddings import embed_text, get_embedder, vector_to_pg
 from db.session import dispose_engine, session_scope
 
 
 @dataclass
 class CompanyProfile:
-    """Perfil usado nos filtros de elegibilidade."""
+    """Perfil usado nos filtros de elegibilidade e no fit contextual."""
 
     name: str = "Empresa Demo"
     size: str | None = None  # MEI/ME/EPP/Grande
     trl: int | None = None
     areas: list[str] = field(default_factory=list)
     uf: str | None = None
+    revenue_brl: float | None = None
+    goal_preference: str | None = None  # auto | cash | fiscal | credito | parceria
 
 
 @dataclass
@@ -32,6 +35,7 @@ class ProjectQuery:
     title: str
     text: str
     budget_brl: float | str | None = None
+    form_data: dict[str, Any] | None = None
 
 
 @dataclass
@@ -50,6 +54,8 @@ class EdictMatch:
     company_sizes: list[str] = field(default_factory=list)
     region: str | None = None
     prazo_proposta: str | None = None
+    instrument: str | None = None
+    opportunity_type: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -147,11 +153,15 @@ class RetrievalAgent:
         require_area_overlap: bool = False,
         enforce_trl: bool = False,
         enforce_size: bool = False,
+        only_in_force: bool = True,
     ) -> RetrievalResult:
         """
         1) Filtra candidatos no SQL (quando houver metadados).
         2) Ordena por distância de cosseno entre embedding(projeto) e edicts.embedding.
         3) Devolve top-k com razões de adequação.
+
+        Por padrao ``only_in_force=True`` exclui editais encerrados ou com
+        prazo/vigencia ja vencidos (metadados FINEP em ``edicts.metadata``).
         """
         query_blob = f"{project.title}\n\n{project.text}".strip()
         vector = embed_text(query_blob, embedder=self.embedder)
@@ -183,6 +193,43 @@ class RetrievalAgent:
             )
             params["size"] = company.size
 
+        if only_in_force:
+            # Situacao: exclui Encerrada/Finalizada; mantem Aberta ou ausente.
+            where.append(
+                """
+                (
+                  NULLIF(TRIM(COALESCE(e.metadata->>'situacao', '')), '') IS NULL
+                  OR LOWER(e.metadata->>'situacao') LIKE 'abert%%'
+                )
+                AND NOT (
+                  LOWER(COALESCE(e.metadata->>'situacao', '')) LIKE '%%encerr%%'
+                  OR LOWER(COALESCE(e.metadata->>'situacao', '')) LIKE '%%finaliz%%'
+                  OR LOWER(COALESCE(e.metadata->>'situacao', '')) LIKE '%%cancel%%'
+                )
+                AND (
+                  NULLIF(TRIM(COALESCE(e.metadata->>'prazo_proposta', '')), '') IS NULL
+                  OR (
+                    e.metadata->>'prazo_proposta' ~ '^[0-9]{4}-'
+                    AND (e.metadata->>'prazo_proposta')::timestamptz >= NOW()
+                  )
+                )
+                AND (
+                  NULLIF(TRIM(COALESCE(e.metadata->>'vigencia_fim', '')), '') IS NULL
+                  OR (
+                    e.metadata->>'vigencia_fim' ~ '^[0-9]{4}-'
+                    AND (e.metadata->>'vigencia_fim')::timestamptz >= NOW()
+                  )
+                )
+                AND (
+                  NULLIF(TRIM(COALESCE(e.metadata->>'vigencia_inicio', '')), '') IS NULL
+                  OR (
+                    e.metadata->>'vigencia_inicio' ~ '^[0-9]{4}-'
+                    AND (e.metadata->>'vigencia_inicio')::timestamptz <= NOW()
+                  )
+                )
+                """
+            )
+
         where_sql = " AND ".join(where)
         sql = text(
             f"""
@@ -197,6 +244,8 @@ class RetrievalAgent:
               e.url,
               e.metadata->>'region' AS region,
               e.metadata->>'prazo_proposta' AS prazo_proposta,
+              e.metadata->>'instrument' AS instrument,
+              e.metadata->>'opportunity_type' AS opportunity_type,
               left(e.raw_text, 400) AS excerpt,
               (e.embedding <=> CAST(:q AS vector)) AS distance
             FROM edicts e
@@ -212,6 +261,7 @@ class RetrievalAgent:
             "require_area_overlap": require_area_overlap,
             "enforce_trl": enforce_trl,
             "enforce_size": enforce_size,
+            "only_in_force": only_in_force,
             "company_areas": company.areas,
             "company_size": company.size,
             "company_trl": company.trl,
@@ -230,6 +280,11 @@ class RetrievalAgent:
             similarity = cosine_similarity_from_distance(distance)
             areas = list(row["areas"] or [])
             sizes = list(row["company_sizes"] or [])
+            instrument = row.get("instrument") or infer_instrument(
+                agency=row.get("agency"),
+                title=row.get("title"),
+                opportunity_type=row.get("opportunity_type"),
+            )
             matches.append(
                 EdictMatch(
                     external_id=row["external_id"],
@@ -253,6 +308,8 @@ class RetrievalAgent:
                     company_sizes=sizes,
                     region=row.get("region"),
                     prazo_proposta=row.get("prazo_proposta"),
+                    instrument=instrument,
+                    opportunity_type=row.get("opportunity_type"),
                 )
             )
 

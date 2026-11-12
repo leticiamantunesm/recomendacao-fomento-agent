@@ -1,6 +1,6 @@
-"""Testes do LLM none + template (T-006)."""
+"""Testes do LLM none + template (T-006) e factory Ollama."""
 
-from app.llm import NoneLLMClient, get_llm_client, render_template_draft
+from app.llm import NoneLLMClient, OllamaLLMClient, get_llm_client, render_template_draft
 from app.config import Settings
 from agents.generation_agent import DraftRequest, GenerationAgent
 
@@ -32,6 +32,18 @@ def test_get_llm_client_none() -> None:
     settings = Settings(LLM_PROVIDER="none")
     client = get_llm_client(settings)
     assert isinstance(client, NoneLLMClient)
+
+
+def test_get_llm_client_ollama() -> None:
+    settings = Settings(
+        LLM_PROVIDER="ollama",
+        OLLAMA_BASE_URL="http://localhost:11434",
+        OLLAMA_MODEL="llama3.2",
+        DATABASE_URL="postgresql://u:p@localhost/db",
+    )
+    client = get_llm_client(settings)
+    assert isinstance(client, OllamaLLMClient)
+    assert client.model == "llama3.2"
 
 
 def test_generation_agent_smoke() -> None:
